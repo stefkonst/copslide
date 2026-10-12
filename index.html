@@ -294,10 +294,22 @@ const EXIT_LIP_Y = 0.04;
 const TURN_LEN3D = TURN_RADIUS * TURN_SWEEP / Math.cos(THETA);
 const TURN_YAW_RATE = Math.cos(THETA) / TURN_RADIUS;  // rad of yaw per meter of 3D path
 
+// The rider starts seated right at the top of the decline (not out on the
+// flat platform) — physically correct (a flat, frictional platform with
+// zero slope has zero net force, so a physics rider placed there at rest
+// never leaves; previously this meant pressing Run did nothing) and matches
+// how you'd actually sit down to go. START_S is where physics time t=0.
+const START_S = ENTRY_FLAT_LEN;
+
+// where the rubber mound starts supporting the shell from underneath, per
+// your spec: nothing touches/holds up the first part except the entry
+// tower — the mound only rises to meet the slide 0.5 m past the turn.
+const SUPPORT_START_S = ENTRY_FLAT_LEN + DECLINE1_LEN + TURN_RADIUS * TURN_SWEEP / Math.cos(THETA) + 0.5;
+
 const PATH_SEGMENTS = [
   { len: ENTRY_FLAT_LEN,        pitch0: 0,     pitch1: 0,     yawRate: 0,             covered: true,  steps: 8 },
   { len: DECLINE1_LEN,          pitch0: THETA, pitch1: THETA, yawRate: 0,             covered: true,  steps: 22 },
-  { len: TURN_LEN3D,            pitch0: THETA, pitch1: THETA, yawRate: TURN_YAW_RATE, covered: true,  steps: 50 },
+  { len: TURN_LEN3D,            pitch0: THETA, pitch1: THETA, yawRate: -TURN_YAW_RATE, covered: true, steps: 50 },
   { len: DECLINE2_ENCLOSED_LEN, pitch0: THETA, pitch1: THETA, yawRate: 0,             covered: true,  steps: 16 },
   { len: TROUGH_LEN,            pitch0: THETA, pitch1: THETA, yawRate: 0,             covered: false, steps: 44 },
   { len: FLARE_LEN,             pitch0: THETA, pitch1: 0,     yawRate: 0,             covered: false, steps: 20 },
@@ -446,10 +458,12 @@ function stepPhysics(dt) {
 }
 
 function resetSim() {
-  sim.s = 0; sim.v = 0; sim.t = 0; sim.running = false; sim.finished = false;
+  sim.s = START_S; sim.v = 0; sim.t = 0; sim.running = false; sim.finished = false;
   sim.history = []; sim.peakV = 0;
   document.getElementById("resultLine").textContent = "No completed run yet — press Run.";
 }
+sim.s = START_S;
+const RUN_LENGTH = TOTAL_LENGTH - START_S;
 
 /* =================================================================== SCENE */
 const viewportEl = document.getElementById("viewport");
@@ -516,22 +530,42 @@ apron.position.set(exitPoint.x, 0.01, exitPoint.z);
 apron.receiveShadow = true;
 scene.add(apron);
 
-// rubber safety-surfacing mound: a few overlapping flattened spheres
-// stacked along the path's own footprint, tallest under the tower and
-// tapering to ~0 by the exit, so it follows whatever PATH_SEGMENTS draws
-// instead of a hand-fit hill shape.
-(function buildMound() {
+// rubber safety-surfacing mound: a ribbon that follows the path's own
+// (x,z) footprint and only EXISTS from SUPPORT_START_S onward (0.5 m past
+// the turn, per spec) — before that the shell is unsupported, carried only
+// by the entry tower. Its top height is clamped to just under the shell's
+// underside (never through it) and never below grade, so it can't cover
+// or clip the slide the way simple hand-placed hills did.
+(function buildGroundSupport() {
   const mat = new THREE.MeshStandardMaterial({ color: 0xaa4a3d, roughness: 0.95 });
-  const stops = [0, 0.25, 0.5, 0.72, 0.9];
-  stops.forEach((frac, i) => {
-    const row = table[Math.floor(frac * (table.length - 1))];
-    const radius = 1.9 - i * 0.18;
-    const hill = new THREE.Mesh(new THREE.SphereGeometry(radius, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat);
-    hill.scale.set(1, 0.5, 1);
-    hill.position.set(row.point.x, -0.05, row.point.z);
-    hill.receiveShadow = true;
-    scene.add(hill);
+  const worldUp = new THREE.Vector3(0, 1, 0);
+  const rows = table.filter(r => r.s >= SUPPORT_START_S);
+  const halfWidth = 1.1, crossSteps = 6;
+  const positions = [], indices = [];
+  rows.forEach(row => {
+    let right = new THREE.Vector3().crossVectors(row.tangent, worldUp);
+    right = right.lengthSq() < 1e-8 ? new THREE.Vector3(1, 0, 0) : right.normalize();
+    const topY = Math.max(0, Math.min(row.point.y - TUBE_RADIUS - 0.03, row.point.y));
+    for (let j = 0; j <= crossSteps; j++) {
+      const frac = (j / crossSteps) * 2 - 1;
+      const y = Math.max(0, topY - 0.4 * frac * frac);
+      positions.push(row.point.x + right.x * frac * halfWidth, y, row.point.z + right.z * frac * halfWidth);
+    }
   });
+  const ringLen = crossSteps + 1;
+  for (let i = 0; i < rows.length - 1; i++) {
+    for (let j = 0; j < crossSteps; j++) {
+      const a0 = i * ringLen + j, a1 = a0 + 1, b0 = a0 + ringLen, b1 = a1 + ringLen;
+      indices.push(a0, b0, a1, a1, b0, b1);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.receiveShadow = true;
+  scene.add(mesh);
 })();
 
 // slide shell: enclosed tube (full circle) + open trough (partial arc),
@@ -560,64 +594,49 @@ scene.add(troughMesh);
   }
 })();
 
-// support poles from the shell underside to ground
-(function buildSupports() {
-  const poleMat = new THREE.MeshStandardMaterial({ color: 0x4a5057, metalness: 0.6, roughness: 0.5 });
-  for (let s = 0.4; s < TOTAL_LENGTH - 0.3; s += 0.6) {
-    const { point } = lerpTable(s);
-    if (point.y < 0.45) continue;
-    const h = point.y - 0.02;
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, h, 8), poleMat);
-    pole.position.set(point.x, point.y - h / 2, point.z);
-    pole.castShadow = true;
-    scene.add(pole);
+// entry tower: the real structure the tube mouth physically plugs into
+// (front.jpg/side.png) — a red/orange + blue striped deck, not a generic
+// steel frame floating near the slide. This is the ONLY support for the
+// unsupported first stretch of the slide (through SUPPORT_START_S); no
+// poles anywhere else (removed per your note — the mound carries the rest).
+(function buildEntryTower() {
+  const c = document.createElement("canvas"); c.width = 256; c.height = 384;
+  const ctx = c.getContext("2d");
+  const stripeColors = ["#e25a3c", "#3b6f99", "#e25a3c", "#dfe3e6"];
+  for (let i = 0; i < 10; i++) {
+    ctx.fillStyle = stripeColors[i % stripeColors.length];
+    ctx.fillRect(i * 26, 0, 26, 384);
   }
-})();
+  ctx.fillStyle = "#1c2128"; ctx.beginPath(); ctx.arc(128, 160, 46, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "#e7ebee"; ctx.lineWidth = 6; ctx.stroke();
+  const stripeTex = new THREE.CanvasTexture(c);
 
-// entry tower + shade canopy (distinctive feature from the reference photos)
-(function buildTower() {
-  const steel = new THREE.MeshStandardMaterial({ color: 0x3d4650, metalness: 0.7, roughness: 0.4 });
-  const legH = entryPoint.y + 0.35;
-  const legGeo = new THREE.CylinderGeometry(0.05, 0.05, legH, 8);
-  const legOffsets = [[-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]];
-  legOffsets.forEach(([dx, dz]) => {
-    const leg = new THREE.Mesh(legGeo, steel);
-    leg.position.set(entryPoint.x + dx, legH / 2 - 0.02, entryPoint.z + dz);
-    leg.castShadow = true;
-    scene.add(leg);
-  });
+  // deck top sits right under the tube's invert at the mouth, so the tube
+  // visibly rests on/emerges from the tower instead of floating beside it
+  const deckW = 1.3, deckD = 1.3;
+  const deckTopY = entryPoint.y - TUBE_RADIUS * 0.9;
+  const towerCenter = new THREE.Vector3(entryPoint.x, deckTopY / 2, entryPoint.z - deckD / 2 + 0.2);
+
+  const tower = new THREE.Mesh(
+    new THREE.BoxGeometry(deckW, Math.max(0.1, deckTopY), deckD),
+    new THREE.MeshStandardMaterial({ map: stripeTex, roughness: 0.85 })
+  );
+  tower.position.copy(towerCenter);
+  tower.position.y = deckTopY / 2;
+  tower.castShadow = true; tower.receiveShadow = true;
+  scene.add(tower);
+
+  // shade canopy above the mouth (fabric sail, visible in both photos)
   const canopy = new THREE.Mesh(
     new THREE.PlaneGeometry(2.6, 2.6),
     new THREE.MeshStandardMaterial({ color: 0x2c5f8a, roughness: 0.8, side: THREE.DoubleSide })
   );
   canopy.rotation.x = -Math.PI / 2.4;
-  canopy.position.set(entryPoint.x, legH + 0.6, entryPoint.z + 0.1);
+  canopy.position.set(entryPoint.x, deckTopY + 1.1, entryPoint.z + 0.1);
   canopy.castShadow = true;
   scene.add(canopy);
-})();
 
-// background building facade with porthole + stripes (canvas texture)
-(function buildFacade() {
-  const c = document.createElement("canvas"); c.width = 256; c.height = 384;
-  const ctx = c.getContext("2d");
-  ctx.fillStyle = "#3b6f99"; ctx.fillRect(0, 0, 256, 384);
-  const stripeColors = ["#e25a3c", "#3b6f99", "#e25a3c", "#dfe3e6"];
-  for (let i = 0; i < 10; i++) {
-    ctx.fillStyle = stripeColors[i % stripeColors.length];
-    ctx.fillRect(i * 26, 0, 20, 384);
-  }
-  ctx.fillStyle = "#1c2128"; ctx.beginPath(); ctx.arc(128, 120, 46, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = "#e7ebee"; ctx.lineWidth = 6; ctx.stroke();
-  const tex = new THREE.CanvasTexture(c);
-  const facade = new THREE.Mesh(
-    new THREE.PlaneGeometry(6, 9),
-    new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 })
-  );
-  facade.position.set(-3, 4.5, -7);
-  facade.rotation.y = 0.3;
-  scene.add(facade);
-
-  // generic distant skyline blocks for city context
+  // generic distant skyline blocks for city context (Boston waterfront backdrop)
   const skyMat = new THREE.MeshStandardMaterial({ color: 0x8a95a0, roughness: 1 });
   const heights = [10, 14, 8, 17, 11];
   heights.forEach((h, i) => {
@@ -880,12 +899,12 @@ function finishRun() {
 function refreshUI(fromScrub) {
   document.getElementById("tvSpeed").innerHTML = sim.v.toFixed(2) + '<span class="tu">m/s</span>';
   document.getElementById("tvTime").innerHTML = sim.t.toFixed(2) + '<span class="tu">s</span>';
-  document.getElementById("tvDist").innerHTML = sim.s.toFixed(2) + '<span class="tu">m</span>';
+  document.getElementById("tvDist").innerHTML = (sim.s - START_S).toFixed(2) + '<span class="tu">m</span>';
   const { curvature } = lerpTable(sim.s);
   const gLoad = Math.sqrt(1 + Math.pow(sim.v * sim.v * curvature / G, 2));
   document.getElementById("tvG").innerHTML = gLoad.toFixed(2) + '<span class="tu">g</span>';
   if (!fromScrub && sim.history.length > 0) {
-    scrub.value = Math.min(1000, (sim.s / TOTAL_LENGTH) * 1000);
+    scrub.value = Math.min(1000, ((sim.s - START_S) / RUN_LENGTH) * 1000);
     scrubLabel.textContent = sim.t.toFixed(1) + "s";
   }
   document.getElementById("peakSpeedLbl").textContent = "peak " + sim.peakV.toFixed(2) + " m/s";
@@ -895,8 +914,8 @@ function refreshUI(fromScrub) {
 
 /* ================================================================= CHARTS */
 function drawCharts() {
-  drawLineChart("chartSpeed", sim.history, h => h.s, h => h.v, "var(--accent)", 0, TOTAL_LENGTH);
-  drawLineChart("chartElev", sim.history, h => h.s, h => h.h, "var(--elevation)", 0, TOTAL_LENGTH);
+  drawLineChart("chartSpeed", sim.history, h => h.s - START_S, h => h.v, "var(--accent)", 0, RUN_LENGTH);
+  drawLineChart("chartElev", sim.history, h => h.s - START_S, h => h.h, "var(--elevation)", 0, RUN_LENGTH);
 }
 function drawLineChart(svgId, data, xf, yf, color, xMin, xMax) {
   const svg = document.getElementById(svgId);
