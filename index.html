@@ -165,9 +165,9 @@
       <div class="field">
         <label for="posSel">Starting position</label>
         <select id="posSel">
-          <option value="seated">Seated, legs forward</option>
-          <option value="reclined" selected>Reclined, legs forward</option>
-          <option value="prone">Prone, head-first (not recommended in practice)</option>
+          <option value="supine_feet_first" selected>Lying on back, legs forward</option>
+          <option value="prone_feet_first">Lying on belly, legs forward</option>
+          <option value="prone_head_first">Lying on belly, head first (not recommended in practice)</option>
         </select>
       </div>
       <div class="field">
@@ -249,9 +249,9 @@ const CLOTHING = {
   winter:   { mu: 0.30, dragK: 0.085, label: "puffy jacket",  color: 0xcf6a2e },
 };
 const POSITION = {
-  seated:   { mulMu: 1.00, comOffset: 0.16, heightScale: 1.00, label: "seated" },
-  reclined: { mulMu: 0.85, comOffset: 0.08, heightScale: 0.55, label: "reclined" },
-  prone:    { mulMu: 0.70, comOffset: 0.02, heightScale: 0.30, label: "prone head-first" },
+  supine_feet_first: { mulMu: 0.90, comOffset: 0.08, heightScale: 0.45, label: "on back, feet-first" },
+  prone_feet_first:  { mulMu: 1.05, comOffset: 0.05, heightScale: 0.35, label: "on belly, feet-first" },
+  prone_head_first:  { mulMu: 1.15, comOffset: 0.02, heightScale: 0.30, label: "on belly, head-first" },
 };
 const TRACK = { dry: 1.00, humid: 1.18, wet: 1.40 };
 const G = 9.81;
@@ -292,7 +292,7 @@ const FLARE_LEN = 0.5;                               // portion of the exit flat
                                                       // easing pitch back to 0 (within EXIT_FLAT_LEN)
 const TUBE_RADIUS = 0.33;                             // ESTIMATED
 const EXIT_LIP_Y = 0.55;    // exit sits clear above grade, on its own small hill — not buried in the ground plane
-const TURN2_SWEEP = THREE.MathUtils.degToRad(5);      // small correction turn, opposite way, right after the main turn
+const TURN2_SWEEP = THREE.MathUtils.degToRad(20);     // correction turn, opposite way, right after the main turn
 
 const TURN_LEN3D = TURN_RADIUS * TURN_SWEEP / Math.cos(THETA);
 const TURN_YAW_RATE = Math.cos(THETA) / TURN_RADIUS;  // rad of yaw per meter of 3D path
@@ -728,20 +728,46 @@ const rideMarker = new THREE.Mesh(
 );
 scene.add(rideMarker);
 
+// The rig is BUILT standing (torso/head up +Y, legs down -Y). Lying the
+// rider flat along the slide — instead of leaving them standing, which was
+// the actual bug — is one 90° pitch of the whole pelvis group, not a hip
+// bend: rotating pelvis by +90° about X sends "legs" (-Y) to "forward"
+// (-Z, feet-first) and "head" (+Y) to "backward" (+Z, trailing); -90° does
+// the reverse (head-first, head leading). Hip/knee rotations on top of
+// that are then just a small relaxed bend, not the ~90° seated fold the
+// old poses used.
+//
+// Back vs. belly is a genuine asymmetry problem: the capsule rig has no
+// front/back of its own (arms/legs are placed laterally, not anteriorly),
+// so distinguishing "on back" from "on belly" needs a small deliberate
+// local-Z offset on the head/arms (the rig's original "forward" axis,
+// unused until now) that — once the 90°-pitched math above is applied —
+// lands as a +/-Y (toward-floor vs away-from-floor) offset in world space.
+const headRestZ = head.position.z, armRestZ = armL.position.z;
+
+const LYING_POSES = {
+  supine_feet_first: { feetFirst: true,  prone: false, hip: -0.12, knee: 0.28, shoulder: 0.05, elbow: 0.35 },
+  prone_feet_first:  { feetFirst: true,  prone: true,  hip: -0.08, knee: 0.18, shoulder: -0.35, elbow: 0.25 },
+  prone_head_first:  { feetFirst: false, prone: true,  hip: -0.05, knee: 0.12, shoulder: -1.1, elbow: 0.15 },
+};
+
 function applyPose(positionKey) {
-  // hip/knee/shoulder rotation presets (radians), x = pitch forward/back
-  const poses = {
-    seated:   { hip: -1.35, knee: 1.2, torso: -0.25, shoulder: -0.5, elbow: 0.3, y: 0.26 },
-    reclined: { hip: -1.0,  knee: 1.0, torso: -0.9,  shoulder: -1.0, elbow: 0.2, y: 0.16 },
-    prone:    { hip: -0.15, knee: 0.15, torso: 0.35, shoulder: -1.4, elbow: 0.1, y: 0.09 },
-  };
-  const p = poses[positionKey];
+  const p = LYING_POSES[positionKey];
+  pelvis.rotation.set(0, 0, 0);
+  pelvis.rotateX((p.feetFirst ? 1 : -1) * Math.PI / 2);
+
+  // derived so "prone" always lands face-toward-the-tube-floor regardless
+  // of which way the body is pointed (see comment above)
+  const floorSign = (p.prone === p.feetFirst) ? 1 : -1;
+  head.position.z = headRestZ + floorSign * 0.1;
+  [armL, armR].forEach(a => { a.position.z = armRestZ + floorSign * 0.06; });
+
   [legL, legR].forEach(l => { l.rotation.x = p.hip; l.userData.knee.rotation.x = p.knee; });
   [armL, armR].forEach(a => { a.rotation.x = p.shoulder; a.userData.knee.rotation.x = p.elbow; });
-  torso.rotation.x = p.torso;
-  pelvis.position.y = p.y;
+  torso.rotation.x = 0;
+  pelvis.position.set(0, -0.06, 0); // nestled slightly toward the tube's lower wall, not floating on the centerline
 }
-applyPose("reclined");
+applyPose("supine_feet_first");
 
 /* ================================================================== CAMERA */
 const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 200);
