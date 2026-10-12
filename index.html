@@ -1,0 +1,947 @@
+<title>Slide Kinematics Lab</title>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  :root{
+    --bg:#11151a; --bg-raised:#171c22; --panel:#1b2128; --panel-2:#20262e;
+    --border:#2a333d; --border-soft:#232a32;
+    --text:#e7ebee; --text-dim:#93a0ac; --text-faint:#5c6973;
+    --accent:#ff6a33; --accent-soft:rgba(255,106,51,.14); --accent-dim:#c9521f;
+    --elevation:#6fd4c9; --warn:#f0b429; --bad:#e05a5a; --good:#44c97a;
+    --grid:#262e37;
+    --font-display:'Oswald',sans-serif; --font-body:'Inter',sans-serif; --font-mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg); color:var(--text); font-family:var(--font-body);
+    height:100vh; overflow:hidden; display:flex; flex-direction:column;
+  }
+  ::selection{background:var(--accent-soft);}
+  a{color:var(--accent);}
+
+  header{
+    display:flex; align-items:baseline; gap:14px; padding:12px 18px;
+    border-bottom:1px solid var(--border); background:var(--bg-raised); flex:0 0 auto;
+  }
+  header h1{
+    font-family:var(--font-display); font-weight:600; font-size:17px; letter-spacing:.04em;
+    text-transform:uppercase; margin:0; color:var(--text);
+  }
+  header .sub{font-size:12px; color:var(--text-faint); font-family:var(--font-mono);}
+  header .status{margin-left:auto; display:flex; align-items:center; gap:8px; font-size:11px; color:var(--text-dim); font-family:var(--font-mono);}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 6px var(--good);}
+
+  main{flex:1 1 auto; display:grid; grid-template-columns:1fr 340px; min-height:0;}
+  @media (max-width:880px){ main{grid-template-columns:1fr;} aside{border-left:none;border-top:1px solid var(--border);} }
+
+  .stage{position:relative; min-width:0; min-height:0; display:flex; flex-direction:column;}
+  #viewport{flex:1 1 auto; min-height:0; position:relative;}
+  #viewport canvas{display:block; width:100%; height:100%;}
+
+  .hint{
+    position:absolute; top:12px; left:12px; font-family:var(--font-mono); font-size:11px;
+    color:var(--text-faint); background:rgba(17,21,26,.55); padding:6px 9px; border-radius:4px;
+    border:1px solid var(--border-soft); pointer-events:none; line-height:1.5;
+  }
+  .camtag{
+    position:absolute; top:12px; right:12px; font-family:var(--font-mono); font-size:11px;
+    letter-spacing:.06em; color:var(--accent); background:rgba(17,21,26,.55); padding:6px 10px;
+    border-radius:4px; border:1px solid var(--border-soft); text-transform:uppercase;
+  }
+
+  .transport{
+    flex:0 0 auto; display:flex; align-items:center; gap:14px; padding:10px 16px;
+    border-top:1px solid var(--border); background:var(--bg-raised);
+  }
+  button{
+    font-family:var(--font-body); font-weight:500; font-size:12.5px; color:var(--text);
+    background:var(--panel-2); border:1px solid var(--border); border-radius:5px;
+    padding:7px 12px; cursor:pointer; transition:background .12s, border-color .12s;
+  }
+  button:hover{background:#262e37; border-color:#39444f;}
+  button:focus-visible{outline:2px solid var(--accent); outline-offset:1px;}
+  button.primary{background:var(--accent); border-color:var(--accent); color:#1a0e07; font-weight:600;}
+  button.primary:hover{background:#ff7c4d;}
+  button.toggle.active{background:var(--accent-soft); border-color:var(--accent); color:var(--accent);}
+  .camgroup{display:flex; gap:4px; margin-left:auto;}
+  .camgroup button{padding:6px 10px; font-size:11.5px;}
+
+  .scrub{flex:1 1 auto; display:flex; align-items:center; gap:10px; min-width:120px;}
+  input[type=range]{
+    -webkit-appearance:none; appearance:none; width:100%; height:3px; background:var(--grid);
+    border-radius:2px; outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:13px; height:13px; border-radius:50%; background:var(--accent);
+    border:2px solid #1a0e07; cursor:pointer; margin-top:-5px;
+  }
+  input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--accent);border:2px solid #1a0e07;cursor:pointer;}
+  input[type=range]::-moz-range-track{height:3px;background:var(--grid);border-radius:2px;}
+  .scrub span{font-family:var(--font-mono); font-size:11px; color:var(--text-dim); width:44px; text-align:right; font-variant-numeric:tabular-nums;}
+
+  aside{overflow-y:auto; background:var(--panel); padding:16px; display:flex; flex-direction:column; gap:18px;}
+  aside::-webkit-scrollbar{width:8px;}
+  aside::-webkit-scrollbar-thumb{background:var(--border); border-radius:4px;}
+
+  .section-label{
+    font-family:var(--font-display); font-size:11px; font-weight:600; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--text-faint); margin:0 0 10px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .section-label::after{content:""; flex:1; height:1px; background:var(--border);}
+
+  .field{margin-bottom:11px;}
+  .field label{display:block; font-size:12px; color:var(--text-dim); margin-bottom:5px;}
+  .field .note{font-size:10.5px; color:var(--text-faint); margin-top:4px; line-height:1.4;}
+  select{
+    width:100%; font-family:var(--font-body); font-size:12.5px; color:var(--text);
+    background:var(--panel-2); border:1px solid var(--border); border-radius:5px; padding:7px 8px;
+  }
+  .rowval{display:flex; justify-content:space-between; font-size:12px; color:var(--text-dim);}
+  .rowval b{color:var(--text); font-family:var(--font-mono); font-weight:500;}
+  .seg{display:flex; gap:4px;}
+  .seg button{flex:1; padding:6px 4px; font-size:11px;}
+
+  .telemetry{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .tile{
+    background:var(--panel-2); border:1px solid var(--border-soft); border-radius:6px; padding:9px 10px;
+  }
+  .tile .tl{font-size:9.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-faint); margin-bottom:3px;}
+  .tile .tv{font-family:var(--font-mono); font-size:19px; font-weight:500; color:var(--text); font-variant-numeric:tabular-nums;}
+  .tile .tv.accent{color:var(--accent);}
+  .tile .tu{font-size:10.5px; color:var(--text-faint); margin-left:3px;}
+
+  .chart-wrap{margin-top:4px;}
+  .chart-title{font-size:10.5px; color:var(--text-faint); margin-bottom:4px; display:flex; justify-content:space-between;}
+  svg.chart{width:100%; display:block; overflow:visible;}
+  .chart-legend{display:flex; gap:12px; font-size:10.5px; color:var(--text-dim); margin-top:4px;}
+  .chart-legend span{display:inline-flex; align-items:center; gap:5px;}
+  .chart-legend i{width:9px; height:2px; display:inline-block; border-radius:1px;}
+
+  .result-line{font-size:11.5px; color:var(--text-dim); line-height:1.6;}
+  .result-line b{color:var(--text); font-family:var(--font-mono); font-weight:500;}
+
+  .foot-note{font-size:10.5px; color:var(--text-faint); line-height:1.5; border-top:1px solid var(--border-soft); padding-top:12px;}
+</style>
+
+<header>
+  <h1>Slide Kinematics Lab</h1>
+  <span class="sub">Christopher Columbus Park · stainless tube slide · 1&nbsp;rider</span>
+  <div class="status"><span class="dot" id="runDot"></span><span id="runLabel">READY</span></div>
+</header>
+
+<main>
+  <div class="stage">
+    <div id="viewport">
+      <div class="hint">drag to orbit · scroll to zoom</div>
+      <div class="camtag" id="camTag">ORBIT CAM</div>
+    </div>
+    <div class="transport">
+      <button class="primary" id="playBtn">▶ Run</button>
+      <button id="resetBtn">⟲ Reset</button>
+      <div class="scrub">
+        <input type="range" id="scrub" min="0" max="1000" value="0" step="1">
+        <span id="scrubLabel">0.0s</span>
+      </div>
+      <div class="seg" style="width:150px;">
+        <button class="toggle" data-speed="0.25">.25×</button>
+        <button class="toggle active" data-speed="1">1×</button>
+        <button class="toggle" data-speed="2">2×</button>
+      </div>
+      <div class="camgroup">
+        <button class="toggle active" data-cam="orbit">Orbit</button>
+        <button class="toggle" data-cam="tower">Tower</button>
+        <button class="toggle" data-cam="chase">Chase</button>
+        <button class="toggle" data-cam="pov">POV</button>
+      </div>
+    </div>
+  </div>
+
+  <aside>
+    <section>
+      <div class="section-label">Rider setup</div>
+      <div class="field">
+        <label for="posSel">Starting position</label>
+        <select id="posSel">
+          <option value="seated">Seated, legs forward</option>
+          <option value="reclined" selected>Reclined, legs forward</option>
+          <option value="prone">Prone, head-first (not recommended in practice)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="clothSel">Clothing</label>
+        <select id="clothSel">
+          <option value="athletic">Athletic — nylon/spandex</option>
+          <option value="everyday" selected>Everyday — cotton/denim</option>
+          <option value="winter">Winter — puffy jacket + snow pants</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="massRange">Rider mass — <b id="massVal">70</b>&nbsp;kg</label>
+        <input type="range" id="massRange" min="20" max="100" value="70" step="1">
+      </div>
+      <div class="field">
+        <label>Track condition</label>
+        <div class="seg">
+          <button class="toggle active" data-track="dry">Dry</button>
+          <button class="toggle" data-track="humid">Humid</button>
+          <button class="toggle" data-track="wet">Wet</button>
+        </div>
+        <div class="note" id="muNote">μ ≈ — · illustrative, not measured</div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-label">Telemetry</div>
+      <div class="telemetry">
+        <div class="tile"><div class="tl">Speed</div><div class="tv accent" id="tvSpeed">0.00<span class="tu">m/s</span></div></div>
+        <div class="tile"><div class="tl">Elapsed</div><div class="tv" id="tvTime">0.00<span class="tu">s</span></div></div>
+        <div class="tile"><div class="tl">Distance</div><div class="tv" id="tvDist">0.00<span class="tu">m</span></div></div>
+        <div class="tile"><div class="tl">Load factor</div><div class="tv" id="tvG">1.00<span class="tu">g</span></div></div>
+      </div>
+
+      <div class="chart-wrap">
+        <div class="chart-title"><span>Speed vs. distance</span><span id="peakSpeedLbl">peak —</span></div>
+        <svg class="chart" id="chartSpeed" viewBox="0 0 300 90"></svg>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-title"><span>Elevation profile</span><span id="dropLbl">drop —</span></div>
+        <svg class="chart" id="chartElev" viewBox="0 0 300 70"></svg>
+      </div>
+      <div class="chart-legend">
+        <span><i style="background:var(--accent)"></i>speed</span>
+        <span><i style="background:var(--elevation)"></i>height</span>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-label">Last run</div>
+      <div class="result-line" id="resultLine">No completed run yet — press Run.</div>
+    </section>
+
+    <div class="foot-note">
+      Friction/drag coefficients are illustrative starting points for exploring how
+      position and clothing <em>should</em> affect exit velocity — not measured
+      values. Calibrate them against your own waist-IMU + GoPro runs (see
+      <code>analysis/03_velocity_trajectory.py</code>) and this model becomes a
+      predictor you can actually trust.
+    </div>
+  </aside>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+"use strict";
+
+/* ============================================================ PHYSICS CONFIG
+   Illustrative coefficients (see footnote in UI). mu = kinetic friction
+   coefficient, rider fabric vs. brushed stainless steel. posMul scales
+   effective friction for body-contact geometry; dragK is a lumped
+   0.5*Cd*A term (m^2) for the small aerodynamic drag term. comOffset is
+   how far the rider's mass sits from the tube centerline (m), which sets
+   how strongly curves bank the rig visually.
+================================================================= */
+const CLOTHING = {
+  athletic: { mu: 0.12, dragK: 0.045, label: "nylon/spandex", color: 0x2fb6a8 },
+  everyday: { mu: 0.22, dragK: 0.055, label: "cotton/denim",  color: 0x3b5c8c },
+  winter:   { mu: 0.30, dragK: 0.085, label: "puffy jacket",  color: 0xcf6a2e },
+};
+const POSITION = {
+  seated:   { mulMu: 1.00, comOffset: 0.16, heightScale: 1.00, label: "seated" },
+  reclined: { mulMu: 0.85, comOffset: 0.08, heightScale: 0.55, label: "reclined" },
+  prone:    { mulMu: 0.70, comOffset: 0.02, heightScale: 0.30, label: "prone head-first" },
+};
+const TRACK = { dry: 1.00, humid: 1.18, wet: 1.40 };
+const G = 9.81;
+
+/* ================================================================ SLIDE PATH
+   Built from your corrected description + withperson.jpg for scale, not a
+   loose spline fit — a spline through sparse hand-picked points was what
+   produced the earlier bugs (spurious extra bends, dipping below ground).
+   This instead walks the path segment-by-segment (flat / straight-decline
+   / one circular turn / straight-decline / open trough / flat) with a
+   constant-or-monotonic pitch at every step, so it is *geometrically
+   guaranteed* to never go underground and never bends more than the turn
+   you specified.
+
+   GIVEN by you: entry flat 0.5 m, one turn "slight right", trough
+   (uncovered) 2.5 m, exit flat 1.0 m.
+   ESTIMATED from the photos (flagged — correct these if you measure the
+   real slide): decline angle 33°, straight run before the turn 1.2 m,
+   turn radius 1.0 m measured as the horizontal radius (turn sweep 90°),
+   enclosed straight run after the turn 0.8 m, tube radius 0.33 m.
+
+   Units: meters, y = up. The tube is enclosed (full-circle cross-section)
+   until the trough; the trough + exit flat are open-topped (partial-arc
+   cross-section), matching withperson.jpg where the rider is visible only
+   once the slide becomes an open channel.
+================================================================= */
+const THETA = THREE.MathUtils.degToRad(33);         // decline angle — ESTIMATED
+const ENTRY_FLAT_LEN = 0.5;                          // given
+const DECLINE1_LEN = 1.2;                            // ESTIMATED
+const TURN_RADIUS = 1.0;                             // ESTIMATED (horizontal radius)
+const TURN_SWEEP = THREE.MathUtils.degToRad(90);     // "slight right" — ESTIMATED sweep
+const DECLINE2_ENCLOSED_LEN = 0.8;                   // ESTIMATED
+const TROUGH_LEN = 2.5;                              // given
+const EXIT_FLAT_LEN = 1.0;                           // given
+const FLARE_LEN = 0.5;                               // portion of the exit flat spent
+                                                      // easing pitch back to 0 (within EXIT_FLAT_LEN)
+const TUBE_RADIUS = 0.33;                             // ESTIMATED
+const EXIT_LIP_Y = 0.04;
+
+const TURN_LEN3D = TURN_RADIUS * TURN_SWEEP / Math.cos(THETA);
+const TURN_YAW_RATE = Math.cos(THETA) / TURN_RADIUS;  // rad of yaw per meter of 3D path
+
+const PATH_SEGMENTS = [
+  { len: ENTRY_FLAT_LEN,        pitch0: 0,     pitch1: 0,     yawRate: 0,             covered: true,  steps: 8 },
+  { len: DECLINE1_LEN,          pitch0: THETA, pitch1: THETA, yawRate: 0,             covered: true,  steps: 22 },
+  { len: TURN_LEN3D,            pitch0: THETA, pitch1: THETA, yawRate: TURN_YAW_RATE, covered: true,  steps: 50 },
+  { len: DECLINE2_ENCLOSED_LEN, pitch0: THETA, pitch1: THETA, yawRate: 0,             covered: true,  steps: 16 },
+  { len: TROUGH_LEN,            pitch0: THETA, pitch1: THETA, yawRate: 0,             covered: false, steps: 44 },
+  { len: FLARE_LEN,             pitch0: THETA, pitch1: 0,     yawRate: 0,             covered: false, steps: 20 },
+  { len: EXIT_FLAT_LEN - FLARE_LEN, pitch0: 0, pitch1: 0,     yawRate: 0,             covered: false, steps: 10 },
+];
+
+function buildPath() {
+  let pos = new THREE.Vector3(0, 0, 0);
+  let yaw = 0;
+  const pts = [pos.clone()], coveredAt = [true], sArr = [0];
+  let sAcc = 0;
+
+  for (const seg of PATH_SEGMENTS) {
+    const dsStep = seg.len / seg.steps;
+    for (let i = 0; i < seg.steps; i++) {
+      const frac = (i + 1) / seg.steps;
+      const pitch = seg.pitch0 + (seg.pitch1 - seg.pitch0) * frac;
+      yaw += seg.yawRate * dsStep;
+      const dir = new THREE.Vector3(
+        Math.cos(pitch) * Math.sin(yaw), -Math.sin(pitch), Math.cos(pitch) * Math.cos(yaw)
+      );
+      pos = pos.clone().addScaledVector(dir, dsStep);
+      sAcc += dsStep;
+      pts.push(pos.clone());
+      coveredAt.push(seg.covered);
+      sArr.push(sAcc);
+    }
+  }
+  // shift up so the lowest point (the exit) sits just above the ground —
+  // pitch never goes negative above, so the last point IS the lowest one
+  const shiftY = EXIT_LIP_Y - pts[pts.length - 1].y;
+  pts.forEach(p => { p.y += shiftY; });
+  return { pts, coveredAt, sArr };
+}
+
+const { pts: PATH_PTS, coveredAt: PATH_COVERED, sArr: PATH_S } = buildPath();
+const TOTAL_LENGTH = PATH_S[PATH_S.length - 1];
+const TOTAL_DROP = PATH_PTS[0].y - PATH_PTS[PATH_PTS.length - 1].y;
+
+// arc-length table with tangent + curvature precomputed once (central
+// differences on this already-smooth, overshoot-free point list)
+const table = PATH_PTS.map((p, i) => {
+  const i0 = Math.max(0, i - 1), i1 = Math.min(PATH_PTS.length - 1, i + 1);
+  const t = PATH_PTS[i1].clone().sub(PATH_PTS[i0]);
+  if (t.lengthSq() < 1e-12) t.set(0, -1, 0);
+  t.normalize();
+  return { s: PATH_S[i], point: p, tangent: t, covered: PATH_COVERED[i] };
+});
+table.forEach((row, i) => {
+  const i0 = Math.max(0, i - 1), i1 = Math.min(table.length - 1, i + 1);
+  const ds = Math.max(1e-4, table[i1].s - table[i0].s);
+  row.curvature = table[i1].tangent.clone().sub(table[i0].tangent).length() / ds;
+});
+
+function lerpTable(s) {
+  s = Math.max(0, Math.min(TOTAL_LENGTH, s));
+  let lo = 0, hi = table.length - 1;
+  while (hi - lo > 1) { const mid = (lo + hi) >> 1; (table[mid].s < s ? lo = mid : hi = mid); }
+  const a = table[lo], b = table[hi];
+  const t = (b.s - a.s) > 1e-6 ? (s - a.s) / (b.s - a.s) : 0;
+  const point = a.point.clone().lerp(b.point, t);
+  const tangent = a.tangent.clone().lerp(b.tangent, t);
+  if (tangent.lengthSq() > 1e-9) tangent.normalize(); else tangent.copy(a.tangent);
+  const curvature = a.curvature + (b.curvature - a.curvature) * t;
+  return { point, tangent, curvature };
+}
+
+// builds an open quad-strip ring geometry around the path: full circle for
+// the enclosed tube, a partial arc (open at the top) for the trough — same
+// local right/up frame (derived from world-up, not Frenet) so the two
+// pieces never twist relative to each other at the join
+function buildChannelStrip(rows, radius, angleStartDeg, angleEndDeg, radialSegs) {
+  const worldUp = new THREE.Vector3(0, 1, 0);
+  const positions = [], normals = [], indices = [];
+  rows.forEach(row => {
+    const t = row.tangent;
+    let right = new THREE.Vector3().crossVectors(t, worldUp);
+    right = right.lengthSq() < 1e-8 ? new THREE.Vector3(1, 0, 0) : right.normalize();
+    const up = new THREE.Vector3().crossVectors(right, t).normalize();
+    for (let j = 0; j <= radialSegs; j++) {
+      const a = THREE.MathUtils.degToRad(angleStartDeg + (angleEndDeg - angleStartDeg) * j / radialSegs);
+      const offset = new THREE.Vector3()
+        .addScaledVector(right, Math.sin(a) * radius)
+        .addScaledVector(up, -Math.cos(a) * radius);
+      const v = row.point.clone().add(offset);
+      positions.push(v.x, v.y, v.z);
+      normals.push(offset.x / radius, offset.y / radius, offset.z / radius);
+    }
+  });
+  const ringLen = radialSegs + 1;
+  for (let i = 0; i < rows.length - 1; i++) {
+    for (let j = 0; j < radialSegs; j++) {
+      const a0 = i * ringLen + j, a1 = a0 + 1, b0 = a0 + ringLen, b1 = a1 + ringLen;
+      indices.push(a0, b0, a1, a1, b0, b1);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute("normal", new THREE.Float32BufferAttribute(normals, 3));
+  geo.setIndex(indices);
+  return geo;
+}
+
+const coveredEndIdx = table.findIndex(r => !r.covered);
+const coveredRows = table.slice(0, coveredEndIdx + 1);          // tube (+1 row overlap for a seamless join)
+const troughRows = table.slice(Math.max(0, coveredEndIdx - 1)); // open trough
+
+/* ================================================================ SIM STATE */
+const sim = {
+  s: 0, v: 0, t: 0, running: false, finished: false, playSpeed: 1,
+  history: [], // {s,v,t,h}
+  peakV: 0,
+};
+
+function currentParams() {
+  const pos = POSITION[document.getElementById("posSel").value];
+  const cloth = CLOTHING[document.getElementById("clothSel").value];
+  const mass = parseFloat(document.getElementById("massRange").value);
+  const track = TRACK[activeTrack];
+  const mu = cloth.mu * pos.mulMu * track;
+  return { pos, cloth, mass, mu, dragK: cloth.dragK };
+}
+
+function stepPhysics(dt) {
+  const { mu, dragK, mass } = currentParams();
+  const sub = 1 / 480;
+  let remaining = dt;
+  while (remaining > 1e-9 && sim.s < TOTAL_LENGTH) {
+    const h = Math.min(sub, remaining);
+    const { tangent, curvature } = lerpTable(sim.s);
+    const sinTheta = -tangent.y;                 // >0 when descending
+    const cosTheta = Math.sqrt(Math.max(0, 1 - sinTheta * sinTheta));
+    const normal = G * cosTheta + sim.v * sim.v * curvature; // per-unit-mass normal load
+    const dragDecel = (dragK * sim.v * sim.v) / Math.max(20, mass);
+    let a = G * sinTheta - mu * normal - dragDecel;
+    if (sim.v <= 0 && a < 0) a = 0;               // don't go negative/backward
+    sim.v = Math.max(0, sim.v + a * h);
+    sim.s += sim.v * h;
+    sim.t += h;
+    remaining -= h;
+  }
+  if (sim.s >= TOTAL_LENGTH) { sim.s = TOTAL_LENGTH; sim.finished = true; sim.running = false; }
+  sim.peakV = Math.max(sim.peakV, sim.v);
+  const { point } = lerpTable(sim.s);
+  sim.history.push({ s: sim.s, v: sim.v, t: sim.t, h: point.y });
+}
+
+function resetSim() {
+  sim.s = 0; sim.v = 0; sim.t = 0; sim.running = false; sim.finished = false;
+  sim.history = []; sim.peakV = 0;
+  document.getElementById("resultLine").textContent = "No completed run yet — press Run.";
+}
+
+/* =================================================================== SCENE */
+const viewportEl = document.getElementById("viewport");
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+viewportEl.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+
+// sky gradient (inverted sphere, vertex colors)
+(function buildSky() {
+  const geo = new THREE.SphereGeometry(80, 24, 16);
+  const top = new THREE.Color(0x4f7fb3), bottom = new THREE.Color(0xdfe7ea);
+  const colors = [];
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i) / 80;
+    const c = bottom.clone().lerp(top, Math.max(0, y));
+    colors.push(c.r, c.g, c.b);
+  }
+  geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  const mat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false });
+  scene.add(new THREE.Mesh(geo, mat));
+})();
+
+const hemi = new THREE.HemisphereLight(0xcfe3f0, 0x9a7a66, 0.85);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff2e0, 1.15);
+sun.position.set(6, 10, 4);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -10; sun.shadow.camera.right = 10;
+sun.shadow.camera.top = 10; sun.shadow.camera.bottom = -10;
+sun.shadow.camera.far = 30;
+sun.shadow.bias = -0.0015;
+scene.add(sun);
+
+// path bounding box, used to place/size everything below without
+// hardcoding coordinates that would drift out of sync with PATH_SEGMENTS
+const pathBounds = new THREE.Box3().setFromPoints(PATH_PTS);
+const pathCenter = pathBounds.getCenter(new THREE.Vector3());
+const pathSize = pathBounds.getSize(new THREE.Vector3());
+const entryPoint = PATH_PTS[0];
+const exitPoint = PATH_PTS[PATH_PTS.length - 1];
+
+// ground: grass + concrete apron + red rubber mound footprint
+const ground = new THREE.Mesh(
+  new THREE.CircleGeometry(16, 48),
+  new THREE.MeshStandardMaterial({ color: 0x5f8a52, roughness: 1 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+const apron = new THREE.Mesh(
+  new THREE.CircleGeometry(3.4, 40),
+  new THREE.MeshStandardMaterial({ color: 0xb9b2a6, roughness: 1 })
+);
+apron.rotation.x = -Math.PI / 2;
+apron.position.set(exitPoint.x, 0.01, exitPoint.z);
+apron.receiveShadow = true;
+scene.add(apron);
+
+// rubber safety-surfacing mound: a few overlapping flattened spheres
+// stacked along the path's own footprint, tallest under the tower and
+// tapering to ~0 by the exit, so it follows whatever PATH_SEGMENTS draws
+// instead of a hand-fit hill shape.
+(function buildMound() {
+  const mat = new THREE.MeshStandardMaterial({ color: 0xaa4a3d, roughness: 0.95 });
+  const stops = [0, 0.25, 0.5, 0.72, 0.9];
+  stops.forEach((frac, i) => {
+    const row = table[Math.floor(frac * (table.length - 1))];
+    const radius = 1.9 - i * 0.18;
+    const hill = new THREE.Mesh(new THREE.SphereGeometry(radius, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat);
+    hill.scale.set(1, 0.5, 1);
+    hill.position.set(row.point.x, -0.05, row.point.z);
+    hill.receiveShadow = true;
+    scene.add(hill);
+  });
+})();
+
+// slide shell: enclosed tube (full circle) + open trough (partial arc),
+// built from the same path so they join with no seam or twist
+const tubeMat = new THREE.MeshStandardMaterial({ color: 0xaab4bb, metalness: 0.92, roughness: 0.28, side: THREE.DoubleSide });
+const tubeMesh = new THREE.Mesh(buildChannelStrip(coveredRows, TUBE_RADIUS, -180, 180, 20), tubeMat);
+tubeMesh.castShadow = true; tubeMesh.receiveShadow = true;
+scene.add(tubeMesh);
+
+const troughMat = new THREE.MeshStandardMaterial({ color: 0x9aa3aa, metalness: 0.85, roughness: 0.35, side: THREE.DoubleSide });
+const troughMesh = new THREE.Mesh(buildChannelStrip(troughRows, TUBE_RADIUS, -100, 100, 16), troughMat);
+troughMesh.castShadow = true; troughMesh.receiveShadow = true;
+scene.add(troughMesh);
+
+// rib seams (subject-accurate detail: the real tube has banded joints) —
+// spaced along the enclosed section only
+(function buildRibs() {
+  const ribMat = new THREE.MeshStandardMaterial({ color: 0x7d858b, metalness: 0.8, roughness: 0.4 });
+  const ribSpacingM = 0.7;
+  for (let s = ribSpacingM; s < coveredRows[coveredRows.length - 1].s; s += ribSpacingM) {
+    const { point, tangent } = lerpTable(s);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(TUBE_RADIUS + 0.015, 0.012, 8, 24), ribMat);
+    ring.position.copy(point);
+    ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tangent);
+    scene.add(ring);
+  }
+})();
+
+// support poles from the shell underside to ground
+(function buildSupports() {
+  const poleMat = new THREE.MeshStandardMaterial({ color: 0x4a5057, metalness: 0.6, roughness: 0.5 });
+  for (let s = 0.4; s < TOTAL_LENGTH - 0.3; s += 0.6) {
+    const { point } = lerpTable(s);
+    if (point.y < 0.45) continue;
+    const h = point.y - 0.02;
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, h, 8), poleMat);
+    pole.position.set(point.x, point.y - h / 2, point.z);
+    pole.castShadow = true;
+    scene.add(pole);
+  }
+})();
+
+// entry tower + shade canopy (distinctive feature from the reference photos)
+(function buildTower() {
+  const steel = new THREE.MeshStandardMaterial({ color: 0x3d4650, metalness: 0.7, roughness: 0.4 });
+  const legH = entryPoint.y + 0.35;
+  const legGeo = new THREE.CylinderGeometry(0.05, 0.05, legH, 8);
+  const legOffsets = [[-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]];
+  legOffsets.forEach(([dx, dz]) => {
+    const leg = new THREE.Mesh(legGeo, steel);
+    leg.position.set(entryPoint.x + dx, legH / 2 - 0.02, entryPoint.z + dz);
+    leg.castShadow = true;
+    scene.add(leg);
+  });
+  const canopy = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.6, 2.6),
+    new THREE.MeshStandardMaterial({ color: 0x2c5f8a, roughness: 0.8, side: THREE.DoubleSide })
+  );
+  canopy.rotation.x = -Math.PI / 2.4;
+  canopy.position.set(entryPoint.x, legH + 0.6, entryPoint.z + 0.1);
+  canopy.castShadow = true;
+  scene.add(canopy);
+})();
+
+// background building facade with porthole + stripes (canvas texture)
+(function buildFacade() {
+  const c = document.createElement("canvas"); c.width = 256; c.height = 384;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#3b6f99"; ctx.fillRect(0, 0, 256, 384);
+  const stripeColors = ["#e25a3c", "#3b6f99", "#e25a3c", "#dfe3e6"];
+  for (let i = 0; i < 10; i++) {
+    ctx.fillStyle = stripeColors[i % stripeColors.length];
+    ctx.fillRect(i * 26, 0, 20, 384);
+  }
+  ctx.fillStyle = "#1c2128"; ctx.beginPath(); ctx.arc(128, 120, 46, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "#e7ebee"; ctx.lineWidth = 6; ctx.stroke();
+  const tex = new THREE.CanvasTexture(c);
+  const facade = new THREE.Mesh(
+    new THREE.PlaneGeometry(6, 9),
+    new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 })
+  );
+  facade.position.set(-3, 4.5, -7);
+  facade.rotation.y = 0.3;
+  scene.add(facade);
+
+  // generic distant skyline blocks for city context
+  const skyMat = new THREE.MeshStandardMaterial({ color: 0x8a95a0, roughness: 1 });
+  const heights = [10, 14, 8, 17, 11];
+  heights.forEach((h, i) => {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(2.4, h, 2.4), skyMat);
+    b.position.set(-10 + i * 3.4, h / 2, -16 - (i % 2) * 2);
+    scene.add(b);
+  });
+})();
+
+// climbing-dome prop (wireframe hemisphere, matches the mesh dome in side.png)
+(function buildDome() {
+  const dome = new THREE.Mesh(
+    new THREE.SphereGeometry(2.1, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+    new THREE.MeshStandardMaterial({ color: 0x8a4fae, wireframe: true, roughness: 1 })
+  );
+  dome.position.set(-5, 0, 3.5);
+  scene.add(dome);
+})();
+
+// a few low-poly trees
+(function buildTrees() {
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b4a33, roughness: 1 });
+  const leafMat = new THREE.MeshStandardMaterial({ color: 0x4f7a3f, roughness: 1 });
+  [[6, -2], [7.5, 1.5], [-7, -3.5], [5.5, 4.5]].forEach(([x, z]) => {
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 1.4, 6), trunkMat);
+    trunk.position.set(x, 0.7, z); trunk.castShadow = true;
+    const leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(0.75, 0), leafMat);
+    leaf.position.set(x, 1.7, z); leaf.castShadow = true;
+    scene.add(trunk, leaf);
+  });
+})();
+
+/* ===================================================================== RIG */
+const rig = new THREE.Group();
+let clothingMat = new THREE.MeshStandardMaterial({ color: CLOTHING.everyday.color, roughness: 0.7 });
+const skinMat = new THREE.MeshStandardMaterial({ color: 0xd9a583, roughness: 0.8 });
+
+function capsulePart(radius, length, mat) {
+  const g = new THREE.Group();
+  const cyl = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, Math.max(0.001, length - radius * 2), 10), mat);
+  const capTop = new THREE.Mesh(new THREE.SphereGeometry(radius, 10, 8), mat);
+  const capBot = new THREE.Mesh(new THREE.SphereGeometry(radius, 10, 8), mat);
+  capTop.position.y = (length - radius * 2) / 2;
+  capBot.position.y = -(length - radius * 2) / 2;
+  g.add(cyl, capTop, capBot);
+  g.traverse(o => { if (o.isMesh) { o.castShadow = true; } });
+  return g;
+}
+
+const pelvis = new THREE.Group();
+const torso = capsulePart(0.15, 0.46, clothingMat); torso.position.y = 0.28;
+const head = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 10), skinMat); head.position.y = 0.62; head.castShadow = true;
+pelvis.add(torso, head);
+
+function limb(mat, upperLen, lowerLen, radius) {
+  const hip = new THREE.Group();
+  const upper = capsulePart(radius, upperLen, mat); upper.position.y = -upperLen / 2;
+  const kneeGroup = new THREE.Group(); kneeGroup.position.y = -upperLen;
+  const lower = capsulePart(radius * 0.85, lowerLen, mat); lower.position.y = -lowerLen / 2;
+  kneeGroup.add(lower);
+  hip.add(upper, kneeGroup);
+  hip.userData.knee = kneeGroup;
+  return hip;
+}
+const legL = limb(clothingMat, 0.42, 0.42, 0.095); legL.position.set(0.09, 0, 0);
+const legR = limb(clothingMat, 0.42, 0.42, 0.095); legR.position.set(-0.09, 0, 0);
+const armMat = skinMat;
+const armL = limb(clothingMat, 0.3, 0.27, 0.06); armL.position.set(0.19, 0.5, 0);
+const armR = limb(clothingMat, 0.3, 0.27, 0.06); armR.position.set(-0.19, 0.5, 0);
+pelvis.add(legL, legR, armL, armR);
+rig.add(pelvis);
+rig.traverse(o => { if (o.isMesh) o.castShadow = true; });
+scene.add(rig);
+
+function applyPose(positionKey) {
+  // hip/knee/shoulder rotation presets (radians), x = pitch forward/back
+  const poses = {
+    seated:   { hip: -1.35, knee: 1.2, torso: -0.25, shoulder: -0.5, elbow: 0.3, y: 0.26 },
+    reclined: { hip: -1.0,  knee: 1.0, torso: -0.9,  shoulder: -1.0, elbow: 0.2, y: 0.16 },
+    prone:    { hip: -0.15, knee: 0.15, torso: 0.35, shoulder: -1.4, elbow: 0.1, y: 0.09 },
+  };
+  const p = poses[positionKey];
+  [legL, legR].forEach(l => { l.rotation.x = p.hip; l.userData.knee.rotation.x = p.knee; });
+  [armL, armR].forEach(a => { a.rotation.x = p.shoulder; a.userData.knee.rotation.x = p.elbow; });
+  torso.rotation.x = p.torso;
+  pelvis.position.y = p.y;
+}
+applyPose("reclined");
+
+/* ================================================================== CAMERA */
+const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 200);
+let camMode = "orbit";
+const orbitTarget = pathCenter.clone(); orbitTarget.y *= 0.7;
+const orbitRadius = Math.max(4, pathSize.length() * 0.85);
+const orbit = { theta: -0.65, phi: 1.2, radius: orbitRadius, target: orbitTarget };
+const towerCamPos = new THREE.Vector3(
+  pathCenter.x + pathSize.x * 0.9 + 2.5, pathCenter.y + pathSize.y * 0.55 + 1.5, pathCenter.z - pathSize.z * 0.4 - 2
+);
+
+function applyOrbitCamera() {
+  const { theta, phi, radius, target } = orbit;
+  camera.position.set(
+    target.x + radius * Math.sin(phi) * Math.sin(theta),
+    target.y + radius * Math.cos(phi),
+    target.z + radius * Math.sin(phi) * Math.cos(theta)
+  );
+  camera.lookAt(target);
+}
+applyOrbitCamera();
+
+let dragging = false, lastX = 0, lastY = 0;
+renderer.domElement.addEventListener("pointerdown", e => { dragging = true; lastX = e.clientX; lastY = e.clientY; });
+window.addEventListener("pointerup", () => dragging = false);
+window.addEventListener("pointermove", e => {
+  if (!dragging || camMode !== "orbit") return;
+  const dx = e.clientX - lastX, dy = e.clientY - lastY;
+  lastX = e.clientX; lastY = e.clientY;
+  orbit.theta -= dx * 0.006;
+  orbit.phi = Math.max(0.25, Math.min(1.5, orbit.phi - dy * 0.006));
+});
+renderer.domElement.addEventListener("wheel", e => {
+  if (camMode !== "orbit") return;
+  orbit.radius = Math.max(2.5, Math.min(22, orbit.radius + e.deltaY * 0.01));
+  e.preventDefault();
+}, { passive: false });
+
+const chaseSmoothed = new THREE.Vector3();
+function updateCamera(dt) {
+  const { point, tangent } = lerpTable(sim.s);
+  if (camMode === "orbit") {
+    applyOrbitCamera();
+  } else if (camMode === "tower") {
+    camera.position.lerp(towerCamPos, 0.08);
+    camera.lookAt(pathCenter.x, pathCenter.y * 0.7, pathCenter.z);
+  } else if (camMode === "chase") {
+    const behind = point.clone().addScaledVector(tangent, -1.8).add(new THREE.Vector3(0, 1.1, 0));
+    chaseSmoothed.lerp(behind, 0.12);
+    camera.position.copy(chaseSmoothed);
+    camera.lookAt(point.clone().addScaledVector(tangent, 1.2));
+  } else if (camMode === "pov") {
+    const eye = point.clone().add(new THREE.Vector3(0, 0.35, 0));
+    camera.position.lerp(eye, 0.4);
+    camera.lookAt(point.clone().addScaledVector(tangent, 2));
+  }
+}
+
+function resize() {
+  const w = viewportEl.clientWidth, h = viewportEl.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / Math.max(1, h);
+  camera.updateProjectionMatrix();
+}
+window.addEventListener("resize", resize);
+
+/* =================================================================== LOOP */
+let lastFrame = performance.now();
+function animate(now) {
+  const dtReal = Math.min(0.05, (now - lastFrame) / 1000);
+  lastFrame = now;
+  resize();
+
+  if (sim.running) {
+    stepPhysics(dtReal * sim.playSpeed);
+    refreshUI();
+    if (sim.finished) finishRun();
+  }
+
+  const { point, tangent, curvature } = lerpTable(sim.s);
+  rig.position.copy(point);
+  const bank = Math.max(-0.9, Math.min(0.9, sim.v * sim.v * curvature * 0.35));
+  const up = new THREE.Vector3(0, 1, 0);
+  const m = new THREE.Matrix4().lookAt(new THREE.Vector3(0, 0, 0), tangent, up);
+  rig.quaternion.setFromRotationMatrix(m);
+  rig.rotateZ(bank);
+
+  updateCamera(dtReal);
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+
+/* ===================================================================== UI */
+let activeTrack = "dry";
+const playBtn = document.getElementById("playBtn");
+const scrub = document.getElementById("scrub");
+const scrubLabel = document.getElementById("scrubLabel");
+
+document.getElementById("posSel").addEventListener("change", e => { applyPose(e.target.value); updateMuNote(); });
+document.getElementById("clothSel").addEventListener("change", e => {
+  clothingMat.color.setHex(CLOTHING[e.target.value].color);
+  updateMuNote();
+});
+document.getElementById("massRange").addEventListener("input", e => {
+  document.getElementById("massVal").textContent = e.target.value;
+});
+document.querySelectorAll("[data-track]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("[data-track]").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activeTrack = btn.dataset.track;
+    updateMuNote();
+  });
+});
+document.querySelectorAll("[data-speed]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("[data-speed]").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    sim.playSpeed = parseFloat(btn.dataset.speed);
+  });
+});
+document.querySelectorAll("[data-cam]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("[data-cam]").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    camMode = btn.dataset.cam;
+    document.getElementById("camTag").textContent = camMode.toUpperCase() + " CAM";
+  });
+});
+
+function updateMuNote() {
+  const { mu } = currentParams();
+  document.getElementById("muNote").textContent = `μ ≈ ${mu.toFixed(3)} · illustrative, not measured`;
+}
+updateMuNote();
+
+playBtn.addEventListener("click", () => {
+  if (sim.finished) resetSim();
+  sim.running = !sim.running;
+  playBtn.textContent = sim.running ? "⏸ Pause" : "▶ Run";
+  document.getElementById("runLabel").textContent = sim.running ? "RUNNING" : (sim.finished ? "FINISHED" : "PAUSED");
+  document.getElementById("runDot").style.background = sim.running ? "var(--accent)" : "var(--good)";
+});
+document.getElementById("resetBtn").addEventListener("click", () => {
+  resetSim();
+  playBtn.textContent = "▶ Run";
+  document.getElementById("runLabel").textContent = "READY";
+  document.getElementById("runDot").style.background = "var(--good)";
+  refreshUI();
+});
+scrub.addEventListener("input", () => {
+  if (sim.history.length === 0) return;
+  const idx = Math.round((scrub.value / 1000) * (sim.history.length - 1));
+  const h = sim.history[idx];
+  sim.s = h.s; sim.v = h.v; sim.t = h.t;
+  sim.running = false;
+  playBtn.textContent = "▶ Run";
+  refreshUI(true);
+});
+
+function finishRun() {
+  const { mu } = currentParams();
+  document.getElementById("resultLine").innerHTML =
+    `Exit speed <b>${sim.v.toFixed(2)} m/s</b> (${(sim.v * 3.6).toFixed(1)} km/h) · ` +
+    `peak <b>${sim.peakV.toFixed(2)} m/s</b> · time <b>${sim.t.toFixed(2)} s</b> · μ≈${mu.toFixed(3)}`;
+  playBtn.textContent = "▶ Run";
+  document.getElementById("runLabel").textContent = "FINISHED";
+  document.getElementById("runDot").style.background = "var(--good)";
+}
+
+function refreshUI(fromScrub) {
+  document.getElementById("tvSpeed").innerHTML = sim.v.toFixed(2) + '<span class="tu">m/s</span>';
+  document.getElementById("tvTime").innerHTML = sim.t.toFixed(2) + '<span class="tu">s</span>';
+  document.getElementById("tvDist").innerHTML = sim.s.toFixed(2) + '<span class="tu">m</span>';
+  const { curvature } = lerpTable(sim.s);
+  const gLoad = Math.sqrt(1 + Math.pow(sim.v * sim.v * curvature / G, 2));
+  document.getElementById("tvG").innerHTML = gLoad.toFixed(2) + '<span class="tu">g</span>';
+  if (!fromScrub && sim.history.length > 0) {
+    scrub.value = Math.min(1000, (sim.s / TOTAL_LENGTH) * 1000);
+    scrubLabel.textContent = sim.t.toFixed(1) + "s";
+  }
+  document.getElementById("peakSpeedLbl").textContent = "peak " + sim.peakV.toFixed(2) + " m/s";
+  document.getElementById("dropLbl").textContent = "drop " + TOTAL_DROP.toFixed(2) + " m";
+  drawCharts();
+}
+
+/* ================================================================= CHARTS */
+function drawCharts() {
+  drawLineChart("chartSpeed", sim.history, h => h.s, h => h.v, "var(--accent)", 0, TOTAL_LENGTH);
+  drawLineChart("chartElev", sim.history, h => h.s, h => h.h, "var(--elevation)", 0, TOTAL_LENGTH);
+}
+function drawLineChart(svgId, data, xf, yf, color, xMin, xMax) {
+  const svg = document.getElementById(svgId);
+  const vb = svg.viewBox.baseVal;
+  const W = vb.width, H = vb.height, PAD = 8;
+  svg.innerHTML = "";
+  if (data.length < 2) {
+    svg.innerHTML = `<text x="${PAD}" y="${H / 2}" fill="var(--text-faint)" font-size="9" font-family="monospace">run to see data…</text>`;
+    return;
+  }
+  const ys = data.map(yf);
+  const yMin = Math.min(0, ...ys), yMax = Math.max(...ys) * 1.08 || 1;
+  const sx = v => PAD + ((v - xMin) / (xMax - xMin || 1)) * (W - PAD * 2);
+  const sy = v => H - PAD - ((v - yMin) / (yMax - yMin || 1)) * (H - PAD * 2);
+
+  const ns = "http://www.w3.org/2000/svg";
+  // grid lines (3 horizontal)
+  for (let i = 0; i <= 2; i++) {
+    const gy = PAD + (i / 2) * (H - PAD * 2);
+    const line = document.createElementNS(ns, "line");
+    line.setAttribute("x1", PAD); line.setAttribute("x2", W - PAD);
+    line.setAttribute("y1", gy); line.setAttribute("y2", gy);
+    line.setAttribute("stroke", "var(--grid)"); line.setAttribute("stroke-width", "1");
+    svg.appendChild(line);
+  }
+  let d = "";
+  data.forEach((pt, i) => {
+    const x = sx(xf(pt)), y = sy(yf(pt));
+    d += (i === 0 ? "M" : "L") + x.toFixed(2) + "," + y.toFixed(2) + " ";
+  });
+  const path = document.createElementNS(ns, "path");
+  path.setAttribute("d", d);
+  path.setAttribute("fill", "none");
+  path.setAttribute("stroke", color);
+  path.setAttribute("stroke-width", "2");
+  path.setAttribute("stroke-linecap", "round");
+  path.setAttribute("stroke-linejoin", "round");
+  svg.appendChild(path);
+
+  const last = data[data.length - 1];
+  const dot = document.createElementNS(ns, "circle");
+  dot.setAttribute("cx", sx(xf(last))); dot.setAttribute("cy", sy(yf(last)));
+  dot.setAttribute("r", 3); dot.setAttribute("fill", color);
+  svg.appendChild(dot);
+}
+
+refreshUI();
+</script>
