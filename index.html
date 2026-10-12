@@ -270,8 +270,10 @@ const G = 9.81;
    (uncovered) 2.5 m, exit flat 1.0 m.
    ESTIMATED from the photos (flagged — correct these if you measure the
    real slide): decline angle 33°, straight run before the turn 1.2 m,
-   turn radius 1.0 m measured as the horizontal radius (turn sweep 90°),
-   enclosed straight run after the turn 0.8 m, tube radius 0.33 m.
+   turn radius 1.0 m measured as the horizontal radius (turn sweep 90°,
+   right), a second small 5° correction turn the other way right after it,
+   then straight for the rest of the slide, enclosed straight run after
+   the turns 0.8 m, tube radius 0.33 m.
 
    Units: meters, y = up. The tube is enclosed (full-circle cross-section)
    until the trough; the trough + exit flat are open-topped (partial-arc
@@ -289,10 +291,12 @@ const EXIT_FLAT_LEN = 1.0;                           // given
 const FLARE_LEN = 0.5;                               // portion of the exit flat spent
                                                       // easing pitch back to 0 (within EXIT_FLAT_LEN)
 const TUBE_RADIUS = 0.33;                             // ESTIMATED
-const EXIT_LIP_Y = 0.04;
+const EXIT_LIP_Y = 0.55;    // exit sits clear above grade, on its own small hill — not buried in the ground plane
+const TURN2_SWEEP = THREE.MathUtils.degToRad(5);      // small correction turn, opposite way, right after the main turn
 
 const TURN_LEN3D = TURN_RADIUS * TURN_SWEEP / Math.cos(THETA);
 const TURN_YAW_RATE = Math.cos(THETA) / TURN_RADIUS;  // rad of yaw per meter of 3D path
+const TURN2_LEN3D = TURN_RADIUS * TURN2_SWEEP / Math.cos(THETA);
 
 // The rider starts seated right at the top of the decline (not out on the
 // flat platform) — physically correct (a flat, frictional platform with
@@ -310,6 +314,7 @@ const PATH_SEGMENTS = [
   { len: ENTRY_FLAT_LEN,        pitch0: 0,     pitch1: 0,     yawRate: 0,             covered: true,  steps: 8 },
   { len: DECLINE1_LEN,          pitch0: THETA, pitch1: THETA, yawRate: 0,             covered: true,  steps: 22 },
   { len: TURN_LEN3D,            pitch0: THETA, pitch1: THETA, yawRate: -TURN_YAW_RATE, covered: true, steps: 50 },
+  { len: TURN2_LEN3D,           pitch0: THETA, pitch1: THETA, yawRate: TURN_YAW_RATE,  covered: true, steps: 10 },
   { len: DECLINE2_ENCLOSED_LEN, pitch0: THETA, pitch1: THETA, yawRate: 0,             covered: true,  steps: 16 },
   { len: TROUGH_LEN,            pitch0: THETA, pitch1: THETA, yawRate: 0,             covered: false, steps: 44 },
   { len: FLARE_LEN,             pitch0: THETA, pitch1: 0,     yawRate: 0,             covered: false, steps: 20 },
@@ -512,7 +517,7 @@ const pathSize = pathBounds.getSize(new THREE.Vector3());
 const entryPoint = PATH_PTS[0];
 const exitPoint = PATH_PTS[PATH_PTS.length - 1];
 
-// ground: grass + concrete apron + red rubber mound footprint
+// ground: grass + red rubber hill supporting the back half of the slide
 const ground = new THREE.Mesh(
   new THREE.CircleGeometry(16, 48),
   new THREE.MeshStandardMaterial({ color: 0x5f8a52, roughness: 1 })
@@ -521,50 +526,62 @@ ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
-const apron = new THREE.Mesh(
-  new THREE.CircleGeometry(3.4, 40),
-  new THREE.MeshStandardMaterial({ color: 0xb9b2a6, roughness: 1 })
-);
-apron.rotation.x = -Math.PI / 2;
-apron.position.set(exitPoint.x, 0.01, exitPoint.z);
-apron.receiveShadow = true;
-scene.add(apron);
-
-// rubber safety-surfacing mound: a ribbon that follows the path's own
-// (x,z) footprint and only EXISTS from SUPPORT_START_S onward (0.5 m past
+// rubber safety-surfacing hill: a single rounded, CLOSED mound (domed
+// cross-section, capped ends — not an open-ended ribbon) that follows the
+// path's footprint and only EXISTS from SUPPORT_START_S onward (0.5 m past
 // the turn, per spec) — before that the shell is unsupported, carried only
-// by the entry tower. Its top height is clamped to just under the shell's
-// underside (never through it) and never below grade, so it can't cover
-// or clip the slide the way simple hand-placed hills did.
+// by the entry tower. Its ridge is clamped to just under the shell's
+// underside (never through it) and never below grade.
 (function buildGroundSupport() {
   const mat = new THREE.MeshStandardMaterial({ color: 0xaa4a3d, roughness: 0.95 });
   const worldUp = new THREE.Vector3(0, 1, 0);
   const rows = table.filter(r => r.s >= SUPPORT_START_S);
-  const halfWidth = 1.1, crossSteps = 6;
+  const halfWidth = 0.85, crossSteps = 10, hillHeight = 1.1;
   const positions = [], indices = [];
-  rows.forEach(row => {
+  const ringAt = row => {
     let right = new THREE.Vector3().crossVectors(row.tangent, worldUp);
     right = right.lengthSq() < 1e-8 ? new THREE.Vector3(1, 0, 0) : right.normalize();
-    const topY = Math.max(0, Math.min(row.point.y - TUBE_RADIUS - 0.03, row.point.y));
+    const ridgeY = Math.max(0, Math.min(row.point.y - TUBE_RADIUS - 0.03, row.point.y));
+    const ring = [];
     for (let j = 0; j <= crossSteps; j++) {
-      const frac = (j / crossSteps) * 2 - 1;
-      const y = Math.max(0, topY - 0.4 * frac * frac);
-      positions.push(row.point.x + right.x * frac * halfWidth, y, row.point.z + right.z * frac * halfWidth);
+      const frac = (j / crossSteps) * 2 - 1;               // -1..1 across the hill
+      const domeProfile = 0.5 * (1 - Math.cos(frac * Math.PI)); // 0 at center, 1 at edges — rounded, not flat
+      const y = Math.max(0, ridgeY - hillHeight * domeProfile);
+      ring.push(new THREE.Vector3(row.point.x + right.x * frac * halfWidth, y, row.point.z + right.z * frac * halfWidth));
     }
-  });
+    return ring;
+  };
+  const allRings = rows.map(ringAt);
+  allRings.forEach(ring => ring.forEach(v => positions.push(v.x, v.y, v.z)));
+
   const ringLen = crossSteps + 1;
-  for (let i = 0; i < rows.length - 1; i++) {
+  for (let i = 0; i < allRings.length - 1; i++) {
     for (let j = 0; j < crossSteps; j++) {
       const a0 = i * ringLen + j, a1 = a0 + 1, b0 = a0 + ringLen, b1 = a1 + ringLen;
       indices.push(a0, b0, a1, a1, b0, b1);
     }
   }
+  // end caps so the hill reads as solid, not a hollow open-ended ribbon
+  const capFan = (ring, baseIdx, flip) => {
+    const center = new THREE.Vector3(0, 0, 0);
+    ring.forEach(v => center.add(v));
+    center.multiplyScalar(1 / ring.length);
+    const centerIdx = positions.length / 3;
+    positions.push(center.x, center.y, center.z);
+    for (let j = 0; j < crossSteps; j++) {
+      const a = baseIdx + j, b = baseIdx + j + 1;
+      indices.push(...(flip ? [centerIdx, b, a] : [centerIdx, a, b]));
+    }
+  };
+  capFan(allRings[0], 0, false);
+  capFan(allRings[allRings.length - 1], (allRings.length - 1) * ringLen, true);
+
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
   geo.setIndex(indices);
   geo.computeVertexNormals();
   const mesh = new THREE.Mesh(geo, mat);
-  mesh.receiveShadow = true;
+  mesh.castShadow = true; mesh.receiveShadow = true;
   scene.add(mesh);
 })();
 
@@ -646,16 +663,6 @@ scene.add(troughMesh);
   });
 })();
 
-// climbing-dome prop (wireframe hemisphere, matches the mesh dome in side.png)
-(function buildDome() {
-  const dome = new THREE.Mesh(
-    new THREE.SphereGeometry(2.1, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2),
-    new THREE.MeshStandardMaterial({ color: 0x8a4fae, wireframe: true, roughness: 1 })
-  );
-  dome.position.set(-5, 0, 3.5);
-  scene.add(dome);
-})();
-
 // a few low-poly trees
 (function buildTrees() {
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b4a33, roughness: 1 });
@@ -709,7 +716,17 @@ const armR = limb(clothingMat, 0.3, 0.27, 0.06); armR.position.set(-0.19, 0.5, 0
 pelvis.add(legL, legR, armL, armR);
 rig.add(pelvis);
 rig.traverse(o => { if (o.isMesh) o.castShadow = true; });
+rig.scale.setScalar(0.6); // sized to actually fit inside TUBE_RADIUS, including in the open trough
 scene.add(rig);
+
+// rider's hidden for most of the run (the tube is opaque, by design — see
+// docs/ADVISORY.md on occlusion) so this marker rides the OUTSIDE of the
+// shell, directly above the rider, as a from-outside position readout
+const rideMarker = new THREE.Mesh(
+  new THREE.SphereGeometry(0.07, 14, 10),
+  new THREE.MeshStandardMaterial({ color: 0xdd2222, emissive: 0x5a0f0f, emissiveIntensity: 0.6, roughness: 0.4 })
+);
+scene.add(rideMarker);
 
 function applyPose(positionKey) {
   // hip/knee/shoulder rotation presets (radians), x = pitch forward/back
@@ -811,6 +828,13 @@ function animate(now) {
   const m = new THREE.Matrix4().lookAt(new THREE.Vector3(0, 0, 0), tangent, up);
   rig.quaternion.setFromRotationMatrix(m);
   rig.rotateZ(bank);
+
+  // same local right/up frame the shell geometry uses, so the marker tracks
+  // the actual outer surface (not just a fixed world-up offset)
+  let markerRight = new THREE.Vector3().crossVectors(tangent, up);
+  markerRight = markerRight.lengthSq() < 1e-8 ? new THREE.Vector3(1, 0, 0) : markerRight.normalize();
+  const markerUp = new THREE.Vector3().crossVectors(markerRight, tangent).normalize();
+  rideMarker.position.copy(point).addScaledVector(markerUp, TUBE_RADIUS + 0.05);
 
   updateCamera(dtReal);
   renderer.render(scene, camera);
