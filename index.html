@@ -30,6 +30,11 @@
     text-transform:uppercase; margin:0; color:var(--text);
   }
   header .sub{font-size:12px; color:var(--text-faint); font-family:var(--font-mono);}
+  .tabs{display:flex; gap:4px; margin-left:18px;}
+  .tab{font-family:var(--font-display); font-size:12px; letter-spacing:.08em; text-transform:uppercase; text-decoration:none;
+    color:var(--text-dim); padding:5px 12px; border:1px solid var(--border); border-radius:5px;}
+  .tab.active{color:var(--accent); border-color:var(--accent); background:var(--accent-soft);}
+  .tab:hover{color:var(--text);}
   header .status{margin-left:auto; display:flex; align-items:center; gap:8px; font-size:11px; color:var(--text-dim); font-family:var(--font-mono);}
   .dot{width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 6px var(--good);}
 
@@ -129,6 +134,7 @@
 <header>
   <h1>ANGELCON</h1>
   <span class="sub">how did the cop go so fast by Angel and Stef</span>
+  <nav class="tabs"><a class="tab active" href="./">Simulation</a><a class="tab" href="data.html">Data</a></nav>
   <div class="status"><span class="dot" id="runDot"></span><span id="runLabel">READY</span></div>
 </header>
 
@@ -173,10 +179,27 @@
       <div class="field">
         <label for="clothSel">Clothing</label>
         <select id="clothSel">
-          <option value="athletic">Cop outfit</option>
-          <option value="everyday" selected>Everyday — cotton/denim</option>
-          <option value="winter">Winter — puffy jacket + snow pants</option>
+          <optgroup label="Fitted to the recorded runs">
+            <option value="measured_suit" selected>Cop uniform — measured</option>
+            <option value="measured_normal">Normal clothes — measured (1 run)</option>
+          </optgroup>
+          <optgroup label="Illustrative presets (not measured)">
+            <option value="athletic">Cop outfit</option>
+            <option value="everyday">Everyday — cotton/denim</option>
+            <option value="winter">Winter — puffy jacket + snow pants</option>
+          </optgroup>
         </select>
+      </div>
+      <div class="field">
+        <label for="pushRange">Push-off speed — <b id="pushVal">1.8</b>&nbsp;m/s</label>
+        <input type="range" id="pushRange" min="0" max="3" value="1.8" step="0.1">
+        <div class="note">Speed at the top of the slope. The measured riders all sit near the
+          stall point of the 20° slope (μ ≈ tan 20° = 0.36), so they only get going with a push.</div>
+      </div>
+      <div class="field">
+        <label for="replaySel">Replay a recorded run</label>
+        <select id="replaySel"><option value="">— none (physics simulation) —</option></select>
+        <div class="note">Rider follows the speed reconstructed from the waist IMU — see the Data tab.</div>
       </div>
       <div class="field">
         <label for="massRange">Rider mass — <b id="massVal">70</b>&nbsp;kg</label>
@@ -198,7 +221,7 @@
       <div class="telemetry">
         <div class="tile"><div class="tl">Speed</div><div class="tv accent" id="tvSpeed">0.00<span class="tu">m/s</span></div></div>
         <div class="tile"><div class="tl">Elapsed</div><div class="tv" id="tvTime">0.00<span class="tu">s</span></div></div>
-        <div class="tile"><div class="tl">Distance</div><div class="tv" id="tvDist">0.00<span class="tu">m</span></div></div>
+        <div class="tile"><div class="tl">Distance along slide</div><div class="tv" id="tvDist">0.00<span class="tu">m</span></div></div>
         <div class="tile"><div class="tl">Load factor</div><div class="tv" id="tvG">1.00<span class="tu">g</span></div></div>
       </div>
 
@@ -222,11 +245,11 @@
     </section>
 
     <div class="foot-note">
-      Friction/drag coefficients are illustrative starting points for exploring how
-      position and clothing <em>should</em> affect exit velocity — not measured
-      values. Calibrate them against your own waist-IMU + GoPro runs (see
-      <code>analysis/03_velocity_trajectory.py</code>) and this model becomes a
-      predictor you can actually trust.
+      Slide geometry: segment lengths measured on the slide; the 20° decline and
+      the 120° / 45° turn sweeps are estimates (photos + IMU heading). The
+      “measured” clothing options use the effective friction fitted to the
+      waist-IMU recordings — see the <a href="data.html">Data</a> tab for how, and
+      for every run. The other presets are illustrative only.
     </div>
   </aside>
 </main>
@@ -244,6 +267,11 @@
    how strongly curves bank the rig visually.
 ================================================================= */
 const CLOTHING = {
+  // fitted to the recorded runs (analysis/analyze.py, μ_eff incl. everything
+  // that slows a rider); values are refreshed from data/runs.json on load.
+  // These already include position — the position multiplier is not applied.
+  measured_suit:   { mu: 0.379, dragK: 0.05, label: "cop uniform, measured", color: 0x23395d, measured: true },
+  measured_normal: { mu: 0.389, dragK: 0.05, label: "normal clothes, measured", color: 0x7a5a3a, measured: true },
   athletic: { mu: 0.12, dragK: 0.045, label: "nylon/spandex", color: 0x2fb6a8 },
   everyday: { mu: 0.22, dragK: 0.055, label: "cotton/denim",  color: 0x3b5c8c },
   winter:   { mu: 0.30, dragK: 0.085, label: "puffy jacket",  color: 0xcf6a2e },
@@ -257,111 +285,99 @@ const TRACK = { dry: 1.00, humid: 1.18, wet: 1.40 };
 const G = 9.81;
 
 /* ================================================================ SLIDE PATH
-   Built from your corrected description + withperson.jpg for scale, not a
-   loose spline fit — a spline through sparse hand-picked points was what
-   produced the earlier bugs (spurious extra bends, dipping below ground).
-   This instead walks the path segment-by-segment (flat / straight-decline
-   / one circular turn / straight-decline / open trough / flat) with a
-   constant-or-monotonic pitch at every step, so it is *geometrically
-   guaranteed* to never go underground and never bends more than the turn
-   you specified.
+   Same geometry as analysis/track.py (and the logger's phone page) — change
+   all three together.
 
-   GIVEN by you: entry flat 0.5 m, one turn "slight right", trough
-   (uncovered) 2.5 m, exit flat 1.0 m.
-   ESTIMATED from the photos (flagged — correct these if you measure the
-   real slide): decline angle 33°, straight run before the turn 1.2 m,
-   turn radius 1.0 m measured as the horizontal radius (turn sweep 90°,
-   right), a second small 5° correction turn the other way right after it,
-   then straight for the rest of the slide, enclosed straight run after
-   the turns 0.8 m, tube radius 0.33 m.
+   MEASURED segment lengths (3D arc length along the slide):
+     entry flat 0.72 · upper straight 2.98 · right turn 2.35 · left turn 1.00
+     · lower straight 4.00 · exit flat 1.70  = 12.75 m
+   ESTIMATED: decline 20° (entry ≈ 4.1 m above grade with the 0.55 m exit
+   lip — matches the tower in the photos); turn sweeps right 120° / left 45°
+   from the IMU heading of the recorded runs; the last 2.5 m of the lower
+   straight + the exit flat are the open trough. Pitch eases in over 0.30 m
+   and out over 0.40 m so the path has no kinks (finite curvature).
 
-   Units: meters, y = up. The tube is enclosed (full-circle cross-section)
-   until the trough; the trough + exit flat are open-topped (partial-arc
-   cross-section), matching withperson.jpg where the rider is visible only
-   once the slide becomes an open channel.
+   Units: meters, y = up. Built segment-by-segment with monotonic pitch, so it
+   can never dip underground or bend more than specified.
 ================================================================= */
-const THETA = THREE.MathUtils.degToRad(33);         // decline angle — ESTIMATED
-const ENTRY_FLAT_LEN = 0.5;                          // given
-const DECLINE1_LEN = 1.2;                            // ESTIMATED
-const TURN_RADIUS = 1.0;                             // ESTIMATED (horizontal radius)
-const TURN_SWEEP = THREE.MathUtils.degToRad(90);     // "slight right" — ESTIMATED sweep
-const DECLINE2_ENCLOSED_LEN = 0.8;                   // ESTIMATED
-const TROUGH_LEN = 2.5;                              // given
-const EXIT_FLAT_LEN = 1.0;                           // given
-const FLARE_LEN = 0.5;                               // portion of the exit flat spent
-                                                      // easing pitch back to 0 (within EXIT_FLAT_LEN)
-const TUBE_RADIUS = 0.33;                             // ESTIMATED
-const EXIT_LIP_Y = 0.55;    // exit sits clear above grade, on its own small hill — not buried in the ground plane
-const TURN2_SWEEP = THREE.MathUtils.degToRad(20);     // correction turn, opposite way, right after the main turn
+const THETA = THREE.MathUtils.degToRad(20);          // decline angle — ESTIMATED
+const ENTRY_FLAT_LEN = 0.72, UPPER_LEN = 2.98, TURN_R_LEN = 2.35, TURN_L_LEN = 1.00;
+const LOWER_LEN = 4.00, EXIT_FLAT_LEN = 1.70;        // all MEASURED
+const TURN_R_SWEEP = THREE.MathUtils.degToRad(120);  // ESTIMATED from IMU heading
+const TURN_L_SWEEP = THREE.MathUtils.degToRad(45);   // ESTIMATED from IMU heading
+const RAMP_IN = 0.30, RAMP_OUT = 0.40;
+const TROUGH_LEN = 2.5;                              // open end of the lower straight
+const TUBE_RADIUS = 0.33;                            // ESTIMATED
+const EXIT_LIP_Y = 0.55;    // exit sits clear above grade, on its own small hill
 
-const TURN_LEN3D = TURN_RADIUS * TURN_SWEEP / Math.cos(THETA);
-const TURN_YAW_RATE = Math.cos(THETA) / TURN_RADIUS;  // rad of yaw per meter of 3D path
-const TURN2_LEN3D = TURN_RADIUS * TURN2_SWEEP / Math.cos(THETA);
+// physics t=0 at the top of the full slope (end of the pitch ramp): on the
+// flat or the gentle start of the ramp a rider at rest has nothing pulling
+// them, so either start here or give a push-off speed
+const START_S = ENTRY_FLAT_LEN + RAMP_IN;
 
-// The rider starts seated right at the top of the decline (not out on the
-// flat platform) — physically correct (a flat, frictional platform with
-// zero slope has zero net force, so a physics rider placed there at rest
-// never leaves; previously this meant pressing Run did nothing) and matches
-// how you'd actually sit down to go. START_S is where physics time t=0.
-const START_S = ENTRY_FLAT_LEN;
+// the rubber mound only rises to meet the slide 0.5 m past the right turn —
+// before that the shell is carried by the entry tower alone
+const SUPPORT_START_S = ENTRY_FLAT_LEN + UPPER_LEN + TURN_R_LEN + 0.5;
 
-// where the rubber mound starts supporting the shell from underneath, per
-// your spec: nothing touches/holds up the first part except the entry
-// tower — the mound only rises to meet the slide 0.5 m past the turn.
-const SUPPORT_START_S = ENTRY_FLAT_LEN + DECLINE1_LEN + TURN_RADIUS * TURN_SWEEP / Math.cos(THETA) + 0.5;
-
+// yawRate is rad of heading per metre of 3D path (+ = left)
 const PATH_SEGMENTS = [
-  { len: ENTRY_FLAT_LEN,        pitch0: 0,     pitch1: 0,     yawRate: 0,             covered: true,  steps: 8 },
-  { len: DECLINE1_LEN,          pitch0: THETA, pitch1: THETA, yawRate: 0,             covered: true,  steps: 22 },
-  { len: TURN_LEN3D,            pitch0: THETA, pitch1: THETA, yawRate: -TURN_YAW_RATE, covered: true, steps: 50 },
-  { len: TURN2_LEN3D,           pitch0: THETA, pitch1: THETA, yawRate: TURN_YAW_RATE,  covered: true, steps: 10 },
-  { len: DECLINE2_ENCLOSED_LEN, pitch0: THETA, pitch1: THETA, yawRate: 0,             covered: true,  steps: 16 },
-  { len: TROUGH_LEN,            pitch0: THETA, pitch1: THETA, yawRate: 0,             covered: false, steps: 44 },
-  { len: FLARE_LEN,             pitch0: THETA, pitch1: 0,     yawRate: 0,             covered: false, steps: 20 },
-  { len: EXIT_FLAT_LEN - FLARE_LEN, pitch0: 0, pitch1: 0,     yawRate: 0,             covered: false, steps: 10 },
+  { len: ENTRY_FLAT_LEN,           pitch0: 0,     pitch1: 0,     yawRate: 0,                         covered: true,  steps: 12 },
+  { len: RAMP_IN,                  pitch0: 0,     pitch1: THETA, yawRate: 0,                         covered: true,  steps: 10 },
+  { len: UPPER_LEN - RAMP_IN,      pitch0: THETA, pitch1: THETA, yawRate: 0,                         covered: true,  steps: 40 },
+  { len: TURN_R_LEN,               pitch0: THETA, pitch1: THETA, yawRate: -TURN_R_SWEEP / TURN_R_LEN, covered: true, steps: 80 },
+  { len: TURN_L_LEN,               pitch0: THETA, pitch1: THETA, yawRate: TURN_L_SWEEP / TURN_L_LEN,  covered: true, steps: 30 },
+  { len: LOWER_LEN - TROUGH_LEN,   pitch0: THETA, pitch1: THETA, yawRate: 0,                         covered: true,  steps: 20 },
+  { len: TROUGH_LEN,               pitch0: THETA, pitch1: THETA, yawRate: 0,                         covered: false, steps: 34 },
+  { len: RAMP_OUT,                 pitch0: THETA, pitch1: 0,     yawRate: 0,                         covered: false, steps: 16 },
+  { len: EXIT_FLAT_LEN - RAMP_OUT, pitch0: 0,     pitch1: 0,     yawRate: 0,                         covered: false, steps: 14 },
 ];
+// arc-length landmarks (for the data overlay / replay)
+const S_RIGHT_START = ENTRY_FLAT_LEN + UPPER_LEN;
+const S_BOTTOM = S_RIGHT_START + TURN_R_LEN + TURN_L_LEN + LOWER_LEN;
 
 function buildPath() {
   let pos = new THREE.Vector3(0, 0, 0);
   let yaw = 0;
-  const pts = [pos.clone()], coveredAt = [true], sArr = [0];
+  const pts = [pos.clone()], coveredAt = [true], sArr = [0], kv = [0], kh = [0];
   let sAcc = 0;
 
   for (const seg of PATH_SEGMENTS) {
     const dsStep = seg.len / seg.steps;
+    const dPitch = (seg.pitch1 - seg.pitch0) / seg.len;
     for (let i = 0; i < seg.steps; i++) {
-      const frac = (i + 1) / seg.steps;
-      const pitch = seg.pitch0 + (seg.pitch1 - seg.pitch0) * frac;
-      yaw += seg.yawRate * dsStep;
+      const pitch = seg.pitch0 + (seg.pitch1 - seg.pitch0) * (i + 0.5) / seg.steps;
+      const yawMid = yaw + seg.yawRate * dsStep / 2;
       const dir = new THREE.Vector3(
-        Math.cos(pitch) * Math.sin(yaw), -Math.sin(pitch), Math.cos(pitch) * Math.cos(yaw)
+        Math.cos(pitch) * Math.sin(yawMid), -Math.sin(pitch), Math.cos(pitch) * Math.cos(yawMid)
       );
+      yaw += seg.yawRate * dsStep;
       pos = pos.clone().addScaledVector(dir, dsStep);
       sAcc += dsStep;
       pts.push(pos.clone());
       coveredAt.push(seg.covered);
       sArr.push(sAcc);
+      kv.push(-dPitch);                              // + = concave up (presses the rider in)
+      kh.push(Math.abs(seg.yawRate) * Math.cos(pitch)); // horizontal curvature of the turn
     }
   }
   // shift up so the lowest point (the exit) sits just above the ground —
   // pitch never goes negative above, so the last point IS the lowest one
   const shiftY = EXIT_LIP_Y - pts[pts.length - 1].y;
   pts.forEach(p => { p.y += shiftY; });
-  return { pts, coveredAt, sArr };
+  return { pts, coveredAt, sArr, kv, kh };
 }
 
-const { pts: PATH_PTS, coveredAt: PATH_COVERED, sArr: PATH_S } = buildPath();
+const { pts: PATH_PTS, coveredAt: PATH_COVERED, sArr: PATH_S, kv: PATH_KV, kh: PATH_KH } = buildPath();
 const TOTAL_LENGTH = PATH_S[PATH_S.length - 1];
 const TOTAL_DROP = PATH_PTS[0].y - PATH_PTS[PATH_PTS.length - 1].y;
 
-// arc-length table with tangent + curvature precomputed once (central
-// differences on this already-smooth, overshoot-free point list)
+// arc-length table with tangent + curvature precomputed once
 const table = PATH_PTS.map((p, i) => {
   const i0 = Math.max(0, i - 1), i1 = Math.min(PATH_PTS.length - 1, i + 1);
   const t = PATH_PTS[i1].clone().sub(PATH_PTS[i0]);
   if (t.lengthSq() < 1e-12) t.set(0, -1, 0);
   t.normalize();
-  return { s: PATH_S[i], point: p, tangent: t, covered: PATH_COVERED[i] };
+  return { s: PATH_S[i], point: p, tangent: t, covered: PATH_COVERED[i], kv: PATH_KV[i], kh: PATH_KH[i] };
 });
 table.forEach((row, i) => {
   const i0 = Math.max(0, i - 1), i1 = Math.min(table.length - 1, i + 1);
@@ -379,7 +395,7 @@ function lerpTable(s) {
   const tangent = a.tangent.clone().lerp(b.tangent, t);
   if (tangent.lengthSq() > 1e-9) tangent.normalize(); else tangent.copy(a.tangent);
   const curvature = a.curvature + (b.curvature - a.curvature) * t;
-  return { point, tangent, curvature };
+  return { point, tangent, curvature, kv: b.kv, kh: b.kh };
 }
 
 // builds an open quad-strip ring geometry around the path: full circle for
@@ -434,41 +450,93 @@ function currentParams() {
   const cloth = CLOTHING[document.getElementById("clothSel").value];
   const mass = parseFloat(document.getElementById("massRange").value);
   const track = TRACK[activeTrack];
-  const mu = cloth.mu * pos.mulMu * track;
+  const mu = cloth.measured ? cloth.mu * track : cloth.mu * pos.mulMu * track;
   return { pos, cloth, mass, mu, dragK: cloth.dragK };
 }
 
+// Same model as analysis/physics.py. The wall reaction combines gravity's
+// normal component, the vertical curvature (ramps) and the turn's
+// centripetal demand as vectors: in a turn the rider rides up the wall, so
+// gravity and centripetal load add in quadrature, not linearly.
 function stepPhysics(dt) {
+  if (replay.run) { stepReplay(dt); return; }
   const { mu, dragK, mass } = currentParams();
   const sub = 1 / 480;
   let remaining = dt;
   while (remaining > 1e-9 && sim.s < TOTAL_LENGTH) {
     const h = Math.min(sub, remaining);
-    const { tangent, curvature } = lerpTable(sim.s);
+    const { tangent, kv, kh } = lerpTable(sim.s);
     const sinTheta = -tangent.y;                 // >0 when descending
     const cosTheta = Math.sqrt(Math.max(0, 1 - sinTheta * sinTheta));
-    const normal = G * cosTheta + sim.v * sim.v * curvature; // per-unit-mass normal load
-    const dragDecel = (dragK * sim.v * sim.v) / Math.max(20, mass);
-    let a = G * sinTheta - mu * normal - dragDecel;
-    if (sim.v <= 0 && a < 0) a = 0;               // don't go negative/backward
+    const v2 = sim.v * sim.v;
+    const normal = Math.hypot(G * cosTheta + v2 * kv, v2 * kh); // per-unit-mass wall reaction
+    const dragDecel = (dragK * v2) / Math.max(20, mass);
+    const a = G * sinTheta - mu * normal - dragDecel;
+    if (sim.v <= 1e-4 && a <= 0) {               // static: friction holds the rider
+      sim.v = 0; sim.stalled = true; break;
+    }
     sim.v = Math.max(0, sim.v + a * h);
     sim.s += sim.v * h;
     sim.t += h;
     remaining -= h;
   }
   if (sim.s >= TOTAL_LENGTH) { sim.s = TOTAL_LENGTH; sim.finished = true; sim.running = false; }
+  if (sim.stalled) { sim.finished = true; sim.running = false; }
   sim.peakV = Math.max(sim.peakV, sim.v);
   const { point } = lerpTable(sim.s);
   sim.history.push({ s: sim.s, v: sim.v, t: sim.t, h: point.y });
 }
 
+function pushSpeed() { return parseFloat(document.getElementById("pushRange").value); }
+
 function resetSim() {
-  sim.s = START_S; sim.v = 0; sim.t = 0; sim.running = false; sim.finished = false;
+  sim.s = replay.run ? replay.run.model.s[0] : START_S;
+  sim.v = replay.run ? replay.run.model.v[0] : pushSpeed();
+  sim.t = 0; sim.running = false; sim.finished = false; sim.stalled = false;
   sim.history = []; sim.peakV = 0;
   document.getElementById("resultLine").textContent = "No completed run yet — press Run.";
 }
 sim.s = START_S;
 const RUN_LENGTH = TOTAL_LENGTH - START_S;
+
+/* ================================================================== REPLAY
+   Plays back a recorded run: the rider follows the reconstructed s(t) from
+   data/runs.json (turn landmarks + fitted slide model, see the Data page). */
+const replay = { run: null, runs: [] };
+function stepReplay(dt) {
+  const m = replay.run.model, t0 = m.t[0];
+  sim.t += dt;
+  const tq = t0 + sim.t;
+  let lo = 0, hi = m.t.length - 1;
+  if (tq >= m.t[hi]) { sim.s = m.s[hi]; sim.v = m.v[hi]; sim.finished = true; sim.running = false; }
+  else {
+    while (hi - lo > 1) { const mid = (lo + hi) >> 1; (m.t[mid] < tq ? lo = mid : hi = mid); }
+    const f = (tq - m.t[lo]) / (m.t[hi] - m.t[lo] || 1);
+    sim.s = m.s[lo] + (m.s[hi] - m.s[lo]) * f; sim.v = m.v[lo] + (m.v[hi] - m.v[lo]) * f;
+  }
+  sim.stalled = sim.finished && sim.s < TOTAL_LENGTH - 1e-3;
+  sim.peakV = Math.max(sim.peakV, sim.v);
+  sim.history.push({ s: sim.s, v: sim.v, t: sim.t, h: lerpTable(sim.s).point.y });
+}
+
+fetch("data/runs.json").then(r => r.ok ? r.json() : null).then(doc => {
+  if (!doc) return;
+  replay.runs = doc.runs.filter(r => r.model && r.include);
+  const sel = document.getElementById("replaySel");
+  replay.runs.forEach((r, i) => {
+    const o = document.createElement("option");
+    o.value = i; o.textContent = `#${r.run_id} ${r.subject} · ${r.clothing} — μ ${r.mu_eff.toFixed(3)}`;
+    sel.appendChild(o);
+  });
+  const mean = g => { const v = replay.runs.filter(r => r.group === g).map(r => r.mu_eff); return v.length ? v.reduce((a, b) => a + b) / v.length : null; };
+  const pushOf = g => { const v = replay.runs.filter(r => r.group === g).map(r => r.model_v_begin_mps); return v.length ? v.reduce((a, b) => a + b) / v.length : null; };
+  if (mean("full suit")) { CLOTHING.measured_suit.mu = mean("full suit"); CLOTHING.measured_suit.push = pushOf("full suit"); }
+  if (mean("baseline")) { CLOTHING.measured_normal.mu = mean("baseline"); CLOTHING.measured_normal.push = pushOf("baseline"); }
+  updateMuNote();
+  const want = +new URLSearchParams(location.search).get("replay");
+  const idx = replay.runs.findIndex(r => r.run_id === want);
+  if (want && idx >= 0) { sel.value = idx; sel.dispatchEvent(new Event("change")); }
+}).catch(() => {});
 
 /* =================================================================== SCENE */
 const viewportEl = document.getElementById("viewport");
@@ -876,8 +944,27 @@ const scrubLabel = document.getElementById("scrubLabel");
 
 document.getElementById("posSel").addEventListener("change", e => { applyPose(e.target.value); updateMuNote(); });
 document.getElementById("clothSel").addEventListener("change", e => {
-  clothingMat.color.setHex(CLOTHING[e.target.value].color);
+  const c = CLOTHING[e.target.value];
+  clothingMat.color.setHex(c.color);
+  if (c.measured && c.push) setPush(c.push);
   updateMuNote();
+});
+function setPush(v) {
+  document.getElementById("pushRange").value = v.toFixed(1);
+  document.getElementById("pushVal").textContent = (+v).toFixed(1);
+  if (!sim.running && !replay.run) { resetSim(); refreshUI(); }
+}
+document.getElementById("pushRange").addEventListener("input", e => setPush(parseFloat(e.target.value)));
+document.getElementById("replaySel").addEventListener("change", e => {
+  replay.run = e.target.value === "" ? null : replay.runs[+e.target.value];
+  if (replay.run) {
+    const key = replay.run.group === "full suit" ? "measured_suit" : "measured_normal";
+    clothingMat.color.setHex(CLOTHING[key].color);
+  }
+  resetSim();
+  playBtn.textContent = "▶ Run";
+  document.getElementById("runLabel").textContent = replay.run ? "REPLAY READY" : "READY";
+  refreshUI();
 });
 document.getElementById("massRange").addEventListener("input", e => {
   document.getElementById("massVal").textContent = e.target.value;
@@ -908,7 +995,10 @@ document.querySelectorAll("[data-cam]").forEach(btn => {
 
 function updateMuNote() {
   const { mu } = currentParams();
-  document.getElementById("muNote").textContent = `μ ≈ ${mu.toFixed(3)} · illustrative, not measured`;
+  const c = CLOTHING[document.getElementById("clothSel").value];
+  document.getElementById("muNote").textContent = c.measured
+    ? `μ ≈ ${mu.toFixed(3)} · fitted to the recorded runs (stall at ${Math.tan(THETA).toFixed(3)})`
+    : `μ ≈ ${mu.toFixed(3)} · illustrative, not measured`;
 }
 updateMuNote();
 
@@ -937,9 +1027,12 @@ scrub.addEventListener("input", () => {
 });
 
 function finishRun() {
-  const { mu } = currentParams();
-  document.getElementById("resultLine").innerHTML =
-    `Exit speed <b>${sim.v.toFixed(2)} m/s</b> (${(sim.v * 3.6).toFixed(1)} km/h) · ` +
+  const mu = replay.run ? replay.run.mu_eff : currentParams().mu;
+  const where = sim.s >= S_BOTTOM ? "on the exit flat" : sim.s >= S_RIGHT_START + TURN_R_LEN + TURN_L_LEN ? "on the lower straight" : "in the turns";
+  const head = replay.run ? `Replay #${replay.run.run_id} ${replay.run.subject} (${replay.run.clothing}) · ` : "";
+  document.getElementById("resultLine").innerHTML = head + (sim.stalled
+    ? `Stalled <b>${where}</b> at s = <b>${sim.s.toFixed(2)} m</b> · `
+    : `Exit speed <b>${sim.v.toFixed(2)} m/s</b> (${(sim.v * 3.6).toFixed(1)} km/h) · `) +
     `peak <b>${sim.peakV.toFixed(2)} m/s</b> · time <b>${sim.t.toFixed(2)} s</b> · μ≈${mu.toFixed(3)}`;
   playBtn.textContent = "▶ Run";
   document.getElementById("runLabel").textContent = "FINISHED";
@@ -949,12 +1042,12 @@ function finishRun() {
 function refreshUI(fromScrub) {
   document.getElementById("tvSpeed").innerHTML = sim.v.toFixed(2) + '<span class="tu">m/s</span>';
   document.getElementById("tvTime").innerHTML = sim.t.toFixed(2) + '<span class="tu">s</span>';
-  document.getElementById("tvDist").innerHTML = (sim.s - START_S).toFixed(2) + '<span class="tu">m</span>';
+  document.getElementById("tvDist").innerHTML = sim.s.toFixed(2) + '<span class="tu">m</span>';
   const { curvature } = lerpTable(sim.s);
   const gLoad = Math.sqrt(1 + Math.pow(sim.v * sim.v * curvature / G, 2));
   document.getElementById("tvG").innerHTML = gLoad.toFixed(2) + '<span class="tu">g</span>';
   if (!fromScrub && sim.history.length > 0) {
-    scrub.value = Math.min(1000, ((sim.s - START_S) / RUN_LENGTH) * 1000);
+    scrub.value = Math.min(1000, (sim.s / TOTAL_LENGTH) * 1000);
     scrubLabel.textContent = sim.t.toFixed(1) + "s";
   }
   document.getElementById("peakSpeedLbl").textContent = "peak " + sim.peakV.toFixed(2) + " m/s";
@@ -964,8 +1057,8 @@ function refreshUI(fromScrub) {
 
 /* ================================================================= CHARTS */
 function drawCharts() {
-  drawLineChart("chartSpeed", sim.history, h => h.s - START_S, h => h.v, "var(--accent)", 0, RUN_LENGTH);
-  drawLineChart("chartElev", sim.history, h => h.s - START_S, h => h.h, "var(--elevation)", 0, RUN_LENGTH);
+  drawLineChart("chartSpeed", sim.history, h => h.s, h => h.v, "var(--accent)", 0, TOTAL_LENGTH);
+  drawLineChart("chartElev", sim.history, h => h.s, h => h.h, "var(--elevation)", 0, TOTAL_LENGTH);
 }
 function drawLineChart(svgId, data, xf, yf, color, xMin, xMax) {
   const svg = document.getElementById(svgId);
@@ -1012,5 +1105,7 @@ function drawLineChart(svgId, data, xf, yf, color, xMin, xMax) {
   svg.appendChild(dot);
 }
 
+clothingMat.color.setHex(CLOTHING.measured_suit.color);
+resetSim();
 refreshUI();
 </script>
