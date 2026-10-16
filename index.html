@@ -179,15 +179,12 @@
       <div class="field">
         <label for="clothSel">Clothing</label>
         <select id="clothSel">
-          <optgroup label="Fitted to the recorded runs">
-            <option value="measured_suit" selected>Cop uniform — measured</option>
-            <option value="measured_normal">Normal clothes — measured (1 run)</option>
-            <option value="cop_video">The cop — fitted to the viral video</option>
+          <optgroup label="Cop clothes">
+            <option value="measured_suit" selected>Cop uniform — our runs (measured)</option>
+            <option value="cop_video">Cop uniform — the viral cop's run (fitted to his video)</option>
           </optgroup>
-          <optgroup label="Illustrative presets (not measured)">
-            <option value="athletic">Cop outfit</option>
-            <option value="everyday">Everyday — cotton/denim</option>
-            <option value="winter">Winter — puffy jacket + snow pants</option>
+          <optgroup label="Normal clothes">
+            <option value="measured_normal">Normal clothes — our run (measured)</option>
           </optgroup>
         </select>
       </div>
@@ -195,7 +192,7 @@
         <label for="pushRange">Push-off speed — <b id="pushVal">1.8</b>&nbsp;m/s</label>
         <input type="range" id="pushRange" min="0" max="3" value="1.8" step="0.1">
         <div class="note">Speed at the top of the slope. The measured riders all sit near the
-          stall point of the 20° slope (μ ≈ tan 20° = 0.36), so they only get going with a push —
+          stall point of the 30° slope (μ ≈ tan 30° = 0.58), so they only get going with a push —
           defaults to their measured average.</div>
       </div>
       <div class="field">
@@ -247,8 +244,8 @@
     </section>
 
     <div class="foot-note">
-      Slide geometry: segment lengths measured on the slide; the 20° decline and
-      the 120° / 45° turn sweeps are estimates (photos + IMU heading). The
+      Slide geometry: segment lengths measured on the slide, 30° decline as reported; the
+      120° / 45° turn sweeps are estimates (photos + IMU heading). The
       “measured” clothing options use the effective friction fitted to the
       waist-IMU recordings — see the <a href="data.html">Data</a> tab for how, and
       for every run. The other presets are illustrative only.
@@ -279,7 +276,6 @@ const CLOTHING = {
   cop_video:       { mu: 0.122, muLower: 0.122, dragK: 0.05, label: "the cop, from his video", color: 0x1d2a44, measured: true },
   athletic: { mu: 0.12, dragK: 0.045, label: "nylon/spandex", color: 0x2fb6a8 },
   everyday: { mu: 0.22, dragK: 0.055, label: "cotton/denim",  color: 0x3b5c8c },
-  winter:   { mu: 0.30, dragK: 0.085, label: "puffy jacket",  color: 0xcf6a2e },
 };
 const POSITION = {
   supine_feet_first: { mulMu: 0.90, comOffset: 0.08, heightScale: 0.45, label: "on back, feet-first" },
@@ -296,8 +292,7 @@ const G = 9.81;
    MEASURED segment lengths (3D arc length along the slide):
      entry flat 0.72 · upper straight 2.98 · right turn 2.35 · left turn 1.00
      · lower straight 4.00 · exit flat 1.70  = 12.75 m
-   ESTIMATED: decline 20° (entry ≈ 4.1 m above grade with the 0.55 m exit
-   lip — matches the tower in the photos); turn sweeps right 120° / left 45°
+   Decline 30° (reported for the real slide). ESTIMATED: turn sweeps right 120° / left 45°
    from the IMU heading of the recorded runs; the last 2.5 m of the lower
    straight + the exit flat are the open trough. Pitch eases in over 0.30 m
    and out over 0.40 m so the path has no kinks (finite curvature).
@@ -305,7 +300,7 @@ const G = 9.81;
    Units: meters, y = up. Built segment-by-segment with monotonic pitch, so it
    can never dip underground or bend more than specified.
 ================================================================= */
-const THETA = THREE.MathUtils.degToRad(20);          // decline angle — ESTIMATED
+const THETA = THREE.MathUtils.degToRad(30);          // decline angle — reported for the real slide
 const ENTRY_FLAT_LEN = 0.72, UPPER_LEN = 2.98, TURN_R_LEN = 2.35, TURN_L_LEN = 1.00;
 const LOWER_LEN = 4.00, EXIT_FLAT_LEN = 1.70;        // all MEASURED
 const TURN_R_SWEEP = THREE.MathUtils.degToRad(120);  // ESTIMATED from IMU heading
