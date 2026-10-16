@@ -182,6 +182,7 @@
           <optgroup label="Fitted to the recorded runs">
             <option value="measured_suit" selected>Cop uniform — measured</option>
             <option value="measured_normal">Normal clothes — measured (1 run)</option>
+            <option value="cop_video">The cop — fitted to the viral video</option>
           </optgroup>
           <optgroup label="Illustrative presets (not measured)">
             <option value="athletic">Cop outfit</option>
@@ -274,6 +275,8 @@ const CLOTHING = {
   // mu = upper slope + turns, muLower = from the end of the left turn down
   measured_suit:   { mu: 0.379, muLower: 0.373, dragK: 0.05, label: "cop uniform, measured", color: 0x23395d, measured: true },
   measured_normal: { mu: 0.389, muLower: 0.256, dragK: 0.05, label: "normal clothes, measured", color: 0x7a5a3a, measured: true },
+  // fitted to the viral clip: 4.2 m from tube mouth to end lip in 0.70 s
+  cop_video:       { mu: 0.122, muLower: 0.122, dragK: 0.05, label: "the cop, from his video", color: 0x1d2a44, measured: true },
   athletic: { mu: 0.12, dragK: 0.045, label: "nylon/spandex", color: 0x2fb6a8 },
   everyday: { mu: 0.22, dragK: 0.055, label: "cotton/denim",  color: 0x3b5c8c },
   winter:   { mu: 0.30, dragK: 0.085, label: "puffy jacket",  color: 0xcf6a2e },
@@ -537,6 +540,7 @@ fetch("data/runs.json").then(r => r.ok ? r.json() : null).then(doc => {
     if (avg(g, "mu_eff") == null) continue;
     CLOTHING[key].mu = avg(g, "mu_eff"); CLOTHING[key].muLower = avg(g, "mu_lower") ?? avg(g, "mu_eff");
   }
+  if (doc.cop) { CLOTHING.cop_video.mu = doc.cop.mu; CLOTHING.cop_video.muLower = doc.cop.mu; }
   // every preset starts with the riders' measured push-off speed by default
   if (doc.v_push) setPush(doc.v_push);
   updateMuNote();

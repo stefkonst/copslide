@@ -14,7 +14,7 @@
     --accent:#ff6a33; --accent-soft:rgba(255,106,51,.14);
     --grid:#262e37; --axis:#3a4550;
     /* one colour per participant (validated categorical slots 1-3, dark steps) */
-    --angel:#3987e5; --stef:#d95926; --riderb:#199e70; --unk:#8a8984;
+    --angel:#3987e5; --stef:#d95926; --riderb:#199e70; --unk:#8a8984; --cop:#c98500;
     --sim1:#d9dee2; --sim2:#9aa6b0; --sim3:#66727c;
     --seg-upper:#3b5f86; --seg-right:#7a3d5c; --seg-left:#7a5a1e; --seg-lower:#1f5f4a; --seg-flat:#3a4450;
     --font-display:'Oswald',sans-serif; --font-body:'Inter',sans-serif; --font-mono:'JetBrains Mono',monospace;
@@ -40,7 +40,7 @@
   p{margin:6px 0 10px; color:var(--text-dim); max-width:78ch}
   p b, li b{color:var(--text)}
   .lede{font-size:16px; color:var(--text); max-width:80ch}
-  .tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; margin:16px 0}
+  .tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:10px; margin:16px 0}
   .tile{background:var(--panel); border:1px solid var(--border-soft); border-radius:8px; padding:12px 14px}
   .tile .tl{font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-faint)}
   .tile .tv{font-family:var(--font-mono); font-size:26px; font-weight:500; font-variant-numeric:tabular-nums; margin-top:2px}
@@ -117,14 +117,15 @@
       <div class="legend" id="legSpeed"></div>
       <svg class="chart" id="cmpSpeed" height="300"></svg>
       <p class="notes">Coloured lines: each rider's reconstructed speed, ending where they came to rest on the exit flat.
-        Grey dotted: the simulation presets, started with the riders' average push-off speed — they speed up all the way;
-        the riders slowly lose speed.</p>
+        ■ = speed measured on video. Gold: the cop, fitted to his clip. Grey dotted: the simulation presets, started with
+        the riders' average push-off speed. Our riders lose speed in the turns and pick it up again on the lower slide;
+        the cop never slowed down.</p>
     </div>
     <div class="card">
       <h3>The race down — steeper = faster</h3>
       <div class="legend" id="legPos"></div>
       <svg class="chart" id="cmpPos" height="300"></svg>
-      <p class="notes">Dots: the four measured turn landmarks. Lines end where the rider came to rest at the bottom.</p>
+      <p class="notes">● the four IMU turn landmarks · ■ video gates on the lower slide. Gold: the cop, fitted to his video.</p>
       <h3 style="margin-top:12px">Time from the top to the bottom of the slope (shorter = faster)</h3>
       <div id="finish"></div>
     </div>
@@ -157,6 +158,11 @@
       is fitted in two zones: friction on the upper slope and turns from the four turn landmarks, friction on the lower
       slide so the rider comes to rest on the exit flat when the IMU says they did. Run backwards to the top, it also gives
       the push-off speed (~1.9 m/s on average) — the simulation presets are started with that same push.</li>
+    <li><b>Video.</b> Fixed cameras at the bottom see the last ~4.2 m (tube mouth → open trough → exit flat). The rider is
+      tracked frame by frame against the empty slide; position is read against four reference points on the slide. Each clip
+      is put on the IMU clock with one physical event seen in both (landing on the flat, or the free fall of shooting
+      off the end) and the lower-slide friction is fitted to the video gates. The cop's news clip is handheld, so only
+      two gates (tube mouth, end lip) are read by hand. The clips themselves are not published here.</li>
     <li><b>Checks.</b> <i>v = a<sub>centripetal</sub>/yaw rate</i> in the right turn (no geometry needed) reads ~2× higher —
       it is biased upward by bumps and tilt error, so it is shown only as an upper bound. A sweep of the unknown slope
       angle (15–25°) shows the timing is robust; the absolute μ is not.</li>
@@ -257,7 +263,8 @@ function lineChart(svg, o) {
   });
   (o.points || []).forEach(p => {
     const X = sx(p.x), Y = sy(p.y);
-    g += p.hollow
+    if (p.square) g += `<rect x="${X - 5}" y="${Y - 5}" width="10" height="10" fill="${p.hollow ? css("--panel") : p.color}" stroke="${p.color}" stroke-width="2.2"/>`;
+    else g += p.hollow
       ? `<circle cx="${X}" cy="${Y}" r="4.5" fill="${css("--panel")}" stroke="${p.color}" stroke-width="2.2"/>`
       : `<circle cx="${X}" cy="${Y}" r="5" fill="${p.color}" stroke="${css("--panel")}" stroke-width="2"/>`;
   });
@@ -299,8 +306,10 @@ function tiles() {
     { tl: "…in normal clothes", tv: fmt(mean(no.map(r => r.model_time_on_slide_s)), 1), tu: "s", tn: lst(no, "model_time_on_slide_s", 1) + " · Angel never reached the turns" },
     { tl: "Speed through the turns", tv: `${fmt(Math.min(...A.map(r => r.v_turns_mps)), 1)}–${fmt(Math.max(...A.map(r => r.v_turns_mps)), 1)}`, tu: "m/s",
       tn: `walking pace. A frictionless slide this tall would reach ${fmt(vFree, 1)} m/s` },
-    { tl: "Friction vs. the stall point", tv: `${fmt(Math.min(...A.map(r => r.mu_eff)), 2)}–${fmt(Math.max(...A.map(r => r.mu_eff)), 2)}`, tu: "μ",
-      tn: `stall = tan 20° = ${fmt(DOC.stall_mu, 3)} · sim presets 0.11–0.27` },
+    ...(DOC.cop ? [{ tl: "The cop (viral video)", tv: fmt(DOC.cop.v_visible_mps, 1), tu: "m/s",
+      tn: `over the visible trough + flat, ~2–3× our riders · friction μ ≈ ${fmt(DOC.cop.mu, 2)} (${fmt(Math.min(...DOC.cop.mu_range), 2)}–${fmt(Math.max(...DOC.cop.mu_range), 2)})` }] : []),
+    { tl: "Our riders' friction: turns / lower slide", tv: `${fmt(Math.min(...A.map(r => r.mu_eff)), 2)}–${fmt(Math.max(...A.map(r => r.mu_eff)), 2)} / ${fmt(Math.min(...A.filter(r => r.lower_source === "video").map(r => r.mu_lower)), 2)}–${fmt(Math.max(...A.filter(r => r.lower_source === "video").map(r => r.mu_lower)), 2)}`, tu: "μ",
+      tn: `stall = tan 20° = ${fmt(DOC.stall_mu, 3)}: above it you slow down (turns), below it you speed up (lower slide, from video)` },
   ];
   $("tiles").innerHTML = t.map(x => `<div class="tile"><div class="tl">${x.tl}</div>` +
     `<div class="tv">${x.tv}<span class="tu">${x.tu}</span></div><div class="tn">${x.tn}</div></div>`).join("");
@@ -316,24 +325,39 @@ function compareCharts() {
   const sims = DOC.sim.filter(s => s.label.includes("sim preset"));
   const series = [], points = [], leg = [];
   sims.forEach((s, i) => { series.push({ name: s.label, color: simCols[i], x: s.s, y: s.v, dash: "2 4", width: 1.6 }); });
+  if (DOC.cop) {
+    series.push({ name: "the cop (viral video)", color: css("--cop"), x: DOC.cop.model.s, y: DOC.cop.model.v, width: 3 });
+    leg.push({ name: "the cop (viral video)", color: css("--cop") });
+  }
   A.forEach(r => {
+    const vd = Object.values(DOC.videos || {}).find(v => v.run_id === r.run_id);
+    if (vd && vd.gates) {
+      const g = vd.gates, pts = [["9.5", "11.05"], ["11.45", "12.4"]];
+      pts.forEach(([a, b]) => { if (g[a] != null && g[b] != null) points.push({ x: (+a + +b) / 2, y: (b - a) / (g[b] - g[a]), color: pcol(r), name: `${runLabel(r)} video`, hollow: !suit(r), square: true }); });
+    }
     series.push({ name: runLabel(r), color: pcol(r), x: r.model.s, y: r.model.v, dash: dashOf(r), opacity: r.low_confidence ? 0.5 : 1 });
     leg.push({ name: runLabel(r), color: pcol(r), dash: !suit(r) });
     (r.segments || []).forEach(sg => points.push({ x: (sg[0] + sg[1]) / 2, y: sg[4], color: pcol(r), name: `${runLabel(r)} measured`, hollow: !suit(r) }));
   });
   const keyRows = [{ name: "solid = cop uniform", color: css("--text-dim") }, { name: "dashed = normal clothes / unknown", color: css("--text-dim"), dash: 1 },
-    { name: "dots = measured over each turn", color: css("--text-dim"), dot: 1 }];
+    { name: "● IMU, measured over each turn · ■ video", color: css("--text-dim"), dot: 1 }];
   legend($("legSpeed"), leg.concat(sims.map((s, i) => ({ name: `${s.label.replace(" (sim preset)", "")} — sim, μ ${fmt(s.mu, 2)}`, color: simCols[i], dash: 1 })), keyRows));
   lineChart($("cmpSpeed"), { series, points, bands: segBands(), xLabel: "distance along slide (m)", yLabel: "speed (m/s)", xDomain: [0, DOC.track.length_m], yDomain: [0, 7] });
 
   // race: distance vs time since the top of the slope
   const s2 = [], p2 = [], fin = [];
   const sBottom = DOC.track.landmarks_m.bottom_of_decline;
+  if (DOC.cop) {
+    s2.push({ name: "the cop (viral video)", color: css("--cop"), x: DOC.cop.model.t, y: DOC.cop.model.s, width: 3 });
+    fin.push({ name: "the cop (model fitted to the video)", t: interpAt(DOC.cop.model.s, DOC.cop.model.t, sBottom), color: css("--cop"), fill: true });
+  }
   sims.forEach((s, i) => { s2.push({ name: s.label, color: simCols[i], x: s.t, y: s.s, dash: "2 4", width: 1.6 }); fin.push({ name: s.label.replace(" (sim preset)", " — simulation"), t: interpAt(s.s, s.t, sBottom), color: simCols[i], fill: true }); });
   A.forEach(r => {
     const t0 = r.model.t[0], tt = r.model.t.map(t => t - t0);
     s2.push({ name: runLabel(r), color: pcol(r), x: tt, y: r.model.s, dash: dashOf(r), opacity: r.low_confidence ? 0.5 : 1 });
     r.marks.t.forEach((t, k) => p2.push({ x: t - t0, y: r.marks.s[k], color: pcol(r), name: `${runLabel(r)} landmark`, hollow: !suit(r) }));
+    const vd = Object.values(DOC.videos || {}).find(v => v.run_id === r.run_id);
+    if (vd && vd.offset != null) Object.entries(vd.gates).forEach(([gs, gt]) => p2.push({ x: gt + vd.offset - t0, y: +gs, color: pcol(r), name: `${runLabel(r)} video gate`, hollow: !suit(r), square: true }));
     fin.push({ name: runLabel(r), t: interpAt(r.model.s, tt, sBottom), color: pcol(r), fill: suit(r) });
   });
   legend($("legPos"), leg.concat(keyRows.slice(0, 2)));
@@ -351,7 +375,7 @@ function table() {
     ["right turn °", r => fmt(r.right_dpsi_deg, 0)], ["left turn °", r => fmt(r.left_dpsi_deg, 0)],
     ["v right m/s", r => fmt(r.v_right_mps)], ["v left m/s", r => fmt(r.v_left_mps)], ["v turns m/s", r => fmt(r.v_turns_mps)],
     ["μ turns", r => fmt(r.mu_eff, 3)], ["μ lower", r => fmt(r.mu_lower, 3)], ["push-off m/s", r => fmt(r.model_v_begin_mps)],
-    ["top → rest s", r => fmt(r.model_time_on_slide_s, 1)], ["bottom", r => r.exit_how || "—", "l"],
+    ["top → rest s", r => fmt(r.model_time_on_slide_s, 1)], ["lower slide from", r => r.lower_source === "video" ? "video" : r.lower_source === "IMU rest time" ? "IMU only" : "—", "l"],
     ["peak g", r => fmt(r.peak_g_ride ?? r.peak_acc_g, 1)], ["notes", r => [r.manifest_notes, ...(r.notes || [])].filter(Boolean).join(" · "), "note"],
   ];
   $("runsTable").innerHTML = `<thead><tr>${cols.map(c => `<th class="${c[2] === "l" ? "l" : ""}">${c[0]}</th>`).join("")}</tr></thead><tbody>` +
@@ -447,7 +471,9 @@ function gallery() {
     ["01_track_geometry.png", "Slide geometry: measured segment lengths, estimated 20° slope and 120°/45° turns"],
     ["05_speed_along_the_slide.png", "Speed along the slide: riders vs. the simulation presets, same push-off"],
     ["06_race_to_the_bottom.png", "The race down, and time from the top to the bottom of the slope"],
-    ["08_friction.png", "What slows them down: fitted friction vs. the stall line"],
+    ["15_the_cop_vs_our_riders.png", "The cop vs. our riders: measured speed and the friction it implies"],
+    ["08_friction.png", "What slows them down: fitted friction vs. the stall line, and the cop"],
+    ["14_video_vs_imu.png", "Video and IMU on one clock: the camera sees the rider where the model puts them"],
     ["09_suit_vs_normal.png", "Cop uniform vs. normal clothes, per rider"],
     ["07_trajectories_plan.png", "Where each rider was fast or slow, seen from above"],
     ["03_heading_turn_pairs.png", "The slide's fingerprint in the gyro heading"],
