@@ -121,8 +121,8 @@
       <div class="legend" id="legSpeed"></div>
       <svg class="chart" id="cmpSpeed" height="300"></svg>
       <p class="notes">Coloured lines: each rider's reconstructed speed, ending where they came to rest on the exit flat.
-        ■ = speed measured on video. Gold: the cop, fitted to his clip. Grey dotted: the simulation presets, started with
-        the riders' average push-off speed. Our riders lose speed in the turns and pick it up again on the lower slide;
+        ■ = speed measured on video. Gold: the cop, the model fitted to his clip. Grey dotted: the same model with the
+        friction we measured in the cop uniform, started with our riders' average push-off. Our riders lose speed in the turns and pick it up again on the lower slide;
         the cop never slowed down.</p>
     </div>
     <div class="card">
@@ -161,7 +161,7 @@
       (<code>dv/dt = g sin θ − μ·N − drag</code>, wall reaction <code>N</code> from gravity + centripetal load in quadrature)
       is fitted in two zones: friction on the upper slope and turns from the four turn landmarks, friction on the lower
       slide so the rider comes to rest on the exit flat when the IMU says they did. Run backwards to the top, it also gives
-      the push-off speed (~1.9 m/s on average) — the simulation presets are started with that same push.</li>
+      the push-off speed (~1.8 m/s on average) — the grey reference curve starts with that same push.</li>
     <li><b>Video.</b> Fixed cameras at the bottom see the last ~4.2 m (tube mouth → open trough → exit flat). The rider is
       tracked frame by frame against the empty slide; position is read against four reference points on the slide. Each clip
       is put on the IMU clock with one physical event seen in both (landing on the flat, or the free fall of shooting
@@ -339,7 +339,7 @@ function segBands(xKey) {
 
 function compareCharts() {
   const A = analysed(), simCols = [css("--sim1"), css("--sim2"), css("--sim3")];
-  const sims = DOC.sim.filter(s => s.label.includes("sim preset"));
+  const sims = DOC.sim.filter(s => s.label.startsWith("Cop uniform"));
   const series = [], points = [], leg = [];
   sims.forEach((s, i) => { series.push({ name: s.label, color: simCols[i], x: s.s, y: s.v, dash: "2 4", width: 1.6 }); });
   if (DOC.cop) {
@@ -358,7 +358,7 @@ function compareCharts() {
   });
   const keyRows = [{ name: "solid = cop uniform", color: css("--text-dim") }, { name: "dashed = normal clothes / unknown", color: css("--text-dim"), dash: 1 },
     { name: "● IMU, measured over each turn · ■ video", color: css("--text-dim"), dot: 1 }];
-  legend($("legSpeed"), leg.concat(sims.map((s, i) => ({ name: `${s.label.replace(" (sim preset)", "")} — sim, μ ${fmt(s.mu, 2)}`, color: simCols[i], dash: 1 })), keyRows));
+  legend($("legSpeed"), leg.concat(sims.map((s, i) => ({ name: `model with our measured friction (μ ${fmt(s.mu, 2)} turns, ${fmt(s.mu_lower, 2)} lower)`, color: simCols[i], dash: 1 })), keyRows));
   lineChart($("cmpSpeed"), { series, points, bands: segBands(), xLabel: "distance along slide (m)", yLabel: "speed (m/s)", xDomain: [0, DOC.track.length_m], yDomain: [0, 7] });
 
   // race: distance vs time since the top of the slope
@@ -368,7 +368,7 @@ function compareCharts() {
     s2.push({ name: "the cop (viral video)", color: css("--cop"), x: DOC.cop.model.t, y: DOC.cop.model.s, width: 3 });
     fin.push({ name: "the cop (model fitted to the video)", t: interpAt(DOC.cop.model.s, DOC.cop.model.t, sBottom), color: css("--cop"), fill: true });
   }
-  sims.forEach((s, i) => { s2.push({ name: s.label, color: simCols[i], x: s.t, y: s.s, dash: "2 4", width: 1.6 }); fin.push({ name: s.label.replace(" (sim preset)", " — simulation"), t: interpAt(s.s, s.t, sBottom), color: simCols[i], fill: true }); });
+  sims.forEach((s, i) => { s2.push({ name: s.label, color: simCols[i], x: s.t, y: s.s, dash: "2 4", width: 1.6 }); fin.push({ name: "model with our measured friction (uniform)", t: interpAt(s.s, s.t, sBottom), color: simCols[i], fill: true }); });
   A.forEach(r => {
     const t0 = r.model.t[0], tt = r.model.t.map(t => t - t0);
     s2.push({ name: runLabel(r), color: pcol(r), x: tt, y: r.model.s, dash: dashOf(r), opacity: r.low_confidence ? 0.5 : 1 });
@@ -536,7 +536,7 @@ function wireVideo(r) {
 function gallery() {
   const figs = [
     ["01_track_geometry.png", "Slide geometry: measured segment lengths, 30° slope (reported), estimated 120°/45° turns"],
-    ["05_speed_along_the_slide.png", "Speed along the slide: riders vs. the simulation presets, same push-off"],
+    ["05_speed_along_the_slide.png", "Speed along the slide: riders, the cop, and the model with our measured friction"],
     ["06_race_to_the_bottom.png", "The race down, and time from the top to the bottom of the slope"],
     ["15_the_cop_vs_our_riders.png", "The cop vs. our riders: measured speed and the friction it implies"],
     ["08_friction.png", "What slows them down: fitted friction vs. the stall line, and the cop"],
