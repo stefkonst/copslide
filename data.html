@@ -13,8 +13,8 @@
     --text:#e7ebee; --text-dim:#93a0ac; --text-faint:#6b7883;
     --accent:#ff6a33; --accent-soft:rgba(255,106,51,.14);
     --grid:#262e37; --axis:#3a4550;
-    /* group colours (validated categorical slots 1-3, dark steps) */
-    --suit:#3987e5; --base:#d95926; --other:#199e70; --unk:#8a8984;
+    /* one colour per participant (validated categorical slots 1-3, dark steps) */
+    --angel:#3987e5; --stef:#d95926; --riderb:#199e70; --unk:#8a8984;
     --sim1:#d9dee2; --sim2:#9aa6b0; --sim3:#66727c;
     --seg-upper:#3b5f86; --seg-right:#7a3d5c; --seg-left:#7a5a1e; --seg-lower:#1f5f4a; --seg-flat:#3a4450;
     --font-display:'Oswald',sans-serif; --font-body:'Inter',sans-serif; --font-mono:'JetBrains Mono',monospace;
@@ -89,6 +89,10 @@
   code{font-family:var(--font-mono); font-size:12px; background:var(--panel-2); padding:1px 5px; border-radius:4px; color:var(--text)}
   pre{font-family:var(--font-mono); font-size:12px; background:var(--panel); border:1px solid var(--border-soft); border-radius:8px; padding:10px 12px; overflow-x:auto; color:var(--text)}
   .warn{border-left:3px solid #c98500; padding:6px 12px; background:#c9850012; border-radius:0 6px 6px 0; color:var(--text-dim); margin:10px 0}
+  .frow{display:grid; grid-template-columns:minmax(150px,46%) 1fr 48px; gap:8px; align-items:center; font-size:12px; color:var(--text-dim); margin:4px 0}
+  .frow .fb{height:12px; position:relative}
+  .frow .fb i{position:absolute; left:0; top:0; bottom:0; border-radius:0 4px 4px 0; box-sizing:border-box}
+  .frow b{font-family:var(--font-mono); color:var(--text); font-weight:500; text-align:right}
   .loading{color:var(--text-faint); font-family:var(--font-mono); font-size:12px}
 </style>
 </head>
@@ -109,18 +113,20 @@
   <h2>Data vs. simulation</h2>
   <div class="grid2">
     <div class="card">
-      <h3>Speed along the slide</h3>
+      <h3>Speed along the slide — everyone starts with the same push</h3>
       <div class="legend" id="legSpeed"></div>
       <svg class="chart" id="cmpSpeed" height="300"></svg>
-      <p class="notes">Lines: slide model fitted to each run (dashed beyond the measured stretch is extrapolation).
-        Dots: measured mean speed over the right turn and over the left turn. Grey: simulation presets.</p>
+      <p class="notes">Coloured lines: each rider's reconstructed speed, ending where they came to rest on the exit flat.
+        Grey dotted: the simulation presets, started with the riders' average push-off speed — they speed up all the way;
+        the riders slowly lose speed.</p>
     </div>
     <div class="card">
-      <h3>Position vs. time since entering the slope</h3>
+      <h3>The race down — steeper = faster</h3>
       <div class="legend" id="legPos"></div>
       <svg class="chart" id="cmpPos" height="300"></svg>
-      <p class="notes">Markers: the four turn landmarks (10 % and 90 % of each turn) — these are the measurements;
-        everything else is the fitted model or the simulation.</p>
+      <p class="notes">Dots: the four measured turn landmarks. Lines end where the rider came to rest at the bottom.</p>
+      <h3 style="margin-top:12px">Time from the top to the bottom of the slope (shorter = faster)</h3>
+      <div id="finish"></div>
     </div>
   </div>
 
@@ -143,18 +149,23 @@
     <li><b>Finding the descent.</b> A recording also holds getting in, scooting and climbing out. The unmistakable part
       is the <b>turn pair</b>: a right turn (heading falls 100–155°) directly followed by a left turn. The 10 % and 90 %
       points of each turn are pinned to the slide (right turn = 2.35 m, left = 1.00 m).</li>
+    <li><b>Reaching the bottom.</b> Every recording ran until the rider was out, so the end of the ride is a landmark too:
+      the first moment after the turns the rider is lying still at the bottom (no rubbing vibration, no rotation), or gets up,
+      whichever is first.</li>
     <li><b>Speed.</b> Distance between landmarks ÷ time between them. A slide model
       (<code>dv/dt = g sin θ − μ·N − drag</code>, wall reaction <code>N</code> from gravity + centripetal load in quadrature)
-      is fitted through the landmarks: its effective friction <b>μ_eff</b> and entry speed then give the full speed profile
-      and the 3D trajectory.</li>
+      is fitted in two zones: friction on the upper slope and turns from the four turn landmarks, friction on the lower
+      slide so the rider comes to rest on the exit flat when the IMU says they did. Run backwards to the top, it also gives
+      the push-off speed (~1.9 m/s on average) — the simulation presets are started with that same push.</li>
     <li><b>Checks.</b> <i>v = a<sub>centripetal</sub>/yaw rate</i> in the right turn (no geometry needed) reads ~2× higher —
-      it is biased upward by bumps and tilt error, so it is shown only as an upper bound. A sweep of the unknown decline
-      angle (15–25°) shows where the riders stall is robust; the absolute μ is not.</li>
+      it is biased upward by bumps and tilt error, so it is shown only as an upper bound. A sweep of the unknown slope
+      angle (15–25°) shows the timing is robust; the absolute μ is not.</li>
   </ol>
   <div class="warn"><b>Caveats.</b> One run per rider per condition — differences between suit and normal clothes are
-    indicative, not statistically tested. The decline angle (20°) and turn sweeps are estimates, not a survey.
-    Run #18's identity is flagged “?” in its name and its turn pair is the weakest of the set; Angel's normal-clothes run
-    (#15) never reached the turns while recording. Run #16 is not a descent.</div>
+    indicative, not statistically tested, and normal clothes always went first. The slope (20°) and turn angles are
+    estimates, not a survey. Stef's normal-clothes run (#18) is <b>uncertain</b>: its name has a “?”, and its turn
+    landmarks don't fit one smooth ride (1.4 s between the turns vs. ~0.4 s in every other run). Angel's normal-clothes
+    run (#15) never reached the turns while recording. Run #16 is not a descent; Rider A (#13) is left out.</div>
 
   <h2>Recording and syncing</h2>
   <ol>
@@ -174,9 +185,11 @@ python analysis/make_figures.py</pre></li>
 "use strict";
 const $ = id => document.getElementById(id);
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-const GROUP = { "full suit": "--suit", "baseline": "--base", "other riders": "--other", "unidentified": "--unk" };
-const gcol = g => css(GROUP[g] || "--unk");
-const DASH_SUBJ = new Set(["Stef", "Rider B"]);
+// colour = participant, dashed = not wearing the cop uniform
+const PERSON = { "Angel": "--angel", "Stef": "--stef", "Rider B": "--riderb" };
+const pcol = r => css(PERSON[r.subject] || "--unk");
+const suit = r => r.clothing === "cop uniform";
+const dashOf = r => suit(r) ? null : "6 4";
 const fmt = (v, d = 2) => (v == null || Number.isNaN(v)) ? "—" : (+v).toFixed(d);
 const tip = $("tip");
 let DOC = null, SEL = null;
@@ -244,8 +257,8 @@ function lineChart(svg, o) {
   });
   (o.points || []).forEach(p => {
     const X = sx(p.x), Y = sy(p.y);
-    g += p.shape === "square"
-      ? `<rect x="${X - 4.5}" y="${Y - 4.5}" width="9" height="9" fill="${p.color}" stroke="${css("--panel")}" stroke-width="2"/>`
+    g += p.hollow
+      ? `<circle cx="${X}" cy="${Y}" r="4.5" fill="${css("--panel")}" stroke="${p.color}" stroke-width="2.2"/>`
       : `<circle cx="${X}" cy="${Y}" r="5" fill="${p.color}" stroke="${css("--panel")}" stroke-width="2"/>`;
   });
   g += `</g><line id="xh_${svg.id}" y1="${M.t}" y2="${H - M.b}" stroke="${css("--text-faint")}" visibility="hidden"/>`;
@@ -273,23 +286,23 @@ function legend(el, items) {
 }
 
 /* -------------------------------------------------------------- sections */
-const runLabel = r => `#${r.run_id} ${r.subject} · ${r.clothing}`;
+const runLabel = r => `${r.subject} · ${r.clothing}${r.low_confidence ? " (uncertain)" : ""} #${r.run_id}`;
 const analysed = () => DOC.runs.filter(r => r.model && r.include);
 
 function tiles() {
   const A = analysed(), mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN;
-  const suit = A.filter(r => r.group === "full suit"), base = A.filter(r => r.group === "baseline");
+  const su = A.filter(suit), no = A.filter(r => r.clothing === "normal clothes");
+  const lst = (rs, k, d) => rs.map(r => `${r.subject} ${fmt(r[k], d)}${r.low_confidence ? " (uncertain)" : ""}`).join(" · ");
+  const vFree = Math.sqrt(2 * 9.81 * DOC.track.drop_m);
   const t = [
-    { tl: "Speed through the turns — cop uniform", tv: fmt(mean(suit.map(r => r.v_turns_mps))), tu: "m/s", key: "--suit",
-      tn: suit.map(r => `${r.subject} ${fmt(r.v_turns_mps)}`).join(" · ") },
-    { tl: "Speed through the turns — normal clothes", tv: fmt(mean(base.map(r => r.v_turns_mps))), tu: "m/s", key: "--base",
-      tn: base.map(r => `${r.subject} ${fmt(r.v_turns_mps)}`).join(" · ") + " · Angel: never reached the turns" },
-    { tl: "Fitted friction μ_eff (all riders)", tv: `${fmt(Math.min(...A.map(r => r.mu_eff)), 2)}–${fmt(Math.max(...A.map(r => r.mu_eff)), 2)}`, tu: "",
-      tn: `stall point of the 20° slope: tan 20° = ${fmt(DOC.stall_mu, 3)}` },
-    { tl: "Runs with a full slide signature", tv: `${A.length} / ${DOC.runs.length}`, tu: "runs",
-      tn: "#15 never reached the turns · #16 not a descent" },
+    { tl: "Top of the slope → at rest, cop uniform", tv: fmt(mean(su.map(r => r.model_time_on_slide_s)), 1), tu: "s", tn: lst(su, "model_time_on_slide_s", 1) },
+    { tl: "…in normal clothes", tv: fmt(mean(no.map(r => r.model_time_on_slide_s)), 1), tu: "s", tn: lst(no, "model_time_on_slide_s", 1) + " · Angel never reached the turns" },
+    { tl: "Speed through the turns", tv: `${fmt(Math.min(...A.map(r => r.v_turns_mps)), 1)}–${fmt(Math.max(...A.map(r => r.v_turns_mps)), 1)}`, tu: "m/s",
+      tn: `walking pace. A frictionless slide this tall would reach ${fmt(vFree, 1)} m/s` },
+    { tl: "Friction vs. the stall point", tv: `${fmt(Math.min(...A.map(r => r.mu_eff)), 2)}–${fmt(Math.max(...A.map(r => r.mu_eff)), 2)}`, tu: "μ",
+      tn: `stall = tan 20° = ${fmt(DOC.stall_mu, 3)} · sim presets 0.11–0.27` },
   ];
-  $("tiles").innerHTML = t.map(x => `<div class="tile"><div class="tl">${x.key ? `<span class="key" style="background:var(${x.key})"></span>` : ""}${x.tl}</div>` +
+  $("tiles").innerHTML = t.map(x => `<div class="tile"><div class="tl">${x.tl}</div>` +
     `<div class="tv">${x.tv}<span class="tu">${x.tu}</span></div><div class="tn">${x.tn}</div></div>`).join("");
 }
 
@@ -301,45 +314,53 @@ function segBands(xKey) {
 function compareCharts() {
   const A = analysed(), simCols = [css("--sim1"), css("--sim2"), css("--sim3")];
   const sims = DOC.sim.filter(s => s.label.includes("sim preset"));
-  const meas = DOC.sim.filter(s => s.label.includes("measured"));
   const series = [], points = [], leg = [];
-  sims.forEach((s, i) => { series.push({ name: s.label, color: simCols[i], x: s.s, y: s.v, dash: "5 4", width: 1.5 }); leg.push({ name: `${s.label} μ ${fmt(s.mu, 3)}`, color: simCols[i], dash: 1 }); });
+  sims.forEach((s, i) => { series.push({ name: s.label, color: simCols[i], x: s.s, y: s.v, dash: "2 4", width: 1.6 }); });
   A.forEach(r => {
-    const c = gcol(r.group);
-    series.push({ name: runLabel(r), color: c, x: r.model.s, y: r.model.v, dash: DASH_SUBJ.has(r.subject) ? "6 3" : null });
-    leg.push({ name: runLabel(r), color: c, dash: DASH_SUBJ.has(r.subject) });
-    (r.segments || []).forEach(sg => points.push({ x: (sg[0] + sg[1]) / 2, y: sg[4], color: c, name: `${runLabel(r)} measured`, shape: r.subject === "Stef" ? "square" : "circle" }));
+    series.push({ name: runLabel(r), color: pcol(r), x: r.model.s, y: r.model.v, dash: dashOf(r), opacity: r.low_confidence ? 0.5 : 1 });
+    leg.push({ name: runLabel(r), color: pcol(r), dash: !suit(r) });
+    (r.segments || []).forEach(sg => points.push({ x: (sg[0] + sg[1]) / 2, y: sg[4], color: pcol(r), name: `${runLabel(r)} measured`, hollow: !suit(r) }));
   });
-  leg.push({ name: "measured turn speed", color: css("--text-dim"), dot: 1 });
-  legend($("legSpeed"), leg);
-  lineChart($("cmpSpeed"), { series, points, bands: segBands(), xLabel: "distance along slide s (m)", yLabel: "speed (m/s)", xDomain: [0, DOC.track.length_m], yDomain: [0, 7] });
+  const keyRows = [{ name: "solid = cop uniform", color: css("--text-dim") }, { name: "dashed = normal clothes / unknown", color: css("--text-dim"), dash: 1 },
+    { name: "dots = measured over each turn", color: css("--text-dim"), dot: 1 }];
+  legend($("legSpeed"), leg.concat(sims.map((s, i) => ({ name: `${s.label.replace(" (sim preset)", "")} — sim, μ ${fmt(s.mu, 2)}`, color: simCols[i], dash: 1 })), keyRows));
+  lineChart($("cmpSpeed"), { series, points, bands: segBands(), xLabel: "distance along slide (m)", yLabel: "speed (m/s)", xDomain: [0, DOC.track.length_m], yDomain: [0, 7] });
 
-  const s2 = [], p2 = [];
-  sims.forEach((s, i) => s2.push({ name: s.label, color: simCols[i], x: s.t, y: s.s, dash: "5 4", width: 1.5 }));
+  // race: distance vs time since the top of the slope
+  const s2 = [], p2 = [], fin = [];
+  const sBottom = DOC.track.landmarks_m.bottom_of_decline;
+  sims.forEach((s, i) => { s2.push({ name: s.label, color: simCols[i], x: s.t, y: s.s, dash: "2 4", width: 1.6 }); fin.push({ name: s.label.replace(" (sim preset)", " — simulation"), t: interpAt(s.s, s.t, sBottom), color: simCols[i], fill: true }); });
   A.forEach(r => {
-    const c = gcol(r.group), t0 = r.model.t[0];
-    s2.push({ name: runLabel(r), color: c, x: r.model.t.map(t => t - t0), y: r.model.s, dash: DASH_SUBJ.has(r.subject) ? "6 3" : null });
-    r.marks.t.forEach((t, k) => p2.push({ x: t - t0, y: r.marks.s[k], color: c, name: `${runLabel(r)} landmark`, shape: r.subject === "Stef" ? "square" : "circle" }));
+    const t0 = r.model.t[0], tt = r.model.t.map(t => t - t0);
+    s2.push({ name: runLabel(r), color: pcol(r), x: tt, y: r.model.s, dash: dashOf(r), opacity: r.low_confidence ? 0.5 : 1 });
+    r.marks.t.forEach((t, k) => p2.push({ x: t - t0, y: r.marks.s[k], color: pcol(r), name: `${runLabel(r)} landmark`, hollow: !suit(r) }));
+    fin.push({ name: runLabel(r), t: interpAt(r.model.s, tt, sBottom), color: pcol(r), fill: suit(r) });
   });
-  legend($("legPos"), leg.slice(0, -1).concat([{ name: "turn landmarks", color: css("--text-dim"), dot: 1 }]));
-  lineChart($("cmpPos"), { series: s2, points: p2, xLabel: "time since entering the slope (s)", yLabel: "s along slide (m)", xDomain: [0, 12], yDomain: [0, DOC.track.length_m] });
+  legend($("legPos"), leg.concat(keyRows.slice(0, 2)));
+  lineChart($("cmpPos"), { series: s2, points: p2, xLabel: "time since leaving the top (s)", yLabel: "distance along slide (m)", xDomain: [0, 11], yDomain: [0, DOC.track.length_m],
+    hlines: [{ y: sBottom, label: "bottom of the slope" }] });
+  fin.sort((a, b) => a.t - b.t);
+  const tmax = Math.max(...fin.map(f => f.t)) * 1.15;
+  $("finish").innerHTML = fin.map(f => `<div class="frow"><span class="fl">${f.name}</span><span class="fb"><i style="width:${(f.t / tmax * 100).toFixed(1)}%;` +
+    `${f.fill ? `background:${f.color}` : `border:2px solid ${f.color}`}"></i></span><b>${fmt(f.t, 1)} s</b></div>`).join("");
 }
 
 function table() {
   const cols = [
-    ["#", r => r.run_id, "l"], ["run name", r => r.name, "l"], ["rider", r => r.subject, "l"], ["clothing", r => `<span class="key" style="background:${gcol(r.group)}"></span>${r.clothing}`, "l"],
+    ["#", r => r.run_id, "l"], ["run name", r => r.name, "l"], ["rider", r => r.subject, "l"], ["clothing", r => `<span class="key" style="background:${pcol(r)}"></span>${r.clothing}`, "l"],
     ["right turn °", r => fmt(r.right_dpsi_deg, 0)], ["left turn °", r => fmt(r.left_dpsi_deg, 0)],
     ["v right m/s", r => fmt(r.v_right_mps)], ["v left m/s", r => fmt(r.v_left_mps)], ["v turns m/s", r => fmt(r.v_turns_mps)],
-    ["μ_eff", r => fmt(r.mu_eff, 3)], ["entry v (model)", r => fmt(r.model_v_begin_mps)], ["stops at s m", r => fmt(r.model_s_end_m, 1)],
+    ["μ turns", r => fmt(r.mu_eff, 3)], ["μ lower", r => fmt(r.mu_lower, 3)], ["push-off m/s", r => fmt(r.model_v_begin_mps)],
+    ["top → rest s", r => fmt(r.model_time_on_slide_s, 1)], ["bottom", r => r.exit_how || "—", "l"],
     ["peak g", r => fmt(r.peak_g_ride ?? r.peak_acc_g, 1)], ["notes", r => [r.manifest_notes, ...(r.notes || [])].filter(Boolean).join(" · "), "note"],
   ];
   $("runsTable").innerHTML = `<thead><tr>${cols.map(c => `<th class="${c[2] === "l" ? "l" : ""}">${c[0]}</th>`).join("")}</tr></thead><tbody>` +
-    DOC.runs.map(r => `<tr data-id="${r.run_id}">${cols.map(c => `<td class="${c[2] || ""}">${c[1](r) ?? "—"}</td>`).join("")}</tr>`).join("") + "</tbody>";
+    DOC.runs.map(r => `<tr data-id="${r.run_id}" style="${r.include ? "" : "opacity:.55"}">${cols.map(c => `<td class="${c[2] || ""}">${c[1](r) ?? "—"}</td>`).join("")}</tr>`).join("") + "</tbody>";
   $("runsTable").querySelectorAll("tbody tr").forEach(tr => tr.addEventListener("click", () => { select(+tr.dataset.id); $("runView").scrollIntoView({ behavior: "smooth", block: "start" }); }));
 }
 
 function chips() {
-  $("chips").innerHTML = DOC.runs.map(r => `<button class="chip" data-id="${r.run_id}"><span class="key" style="background:${gcol(r.group)}"></span>${runLabel(r)}</button>`).join("");
+  $("chips").innerHTML = DOC.runs.filter(r => r.include).map(r => `<button class="chip" data-id="${r.run_id}"><span class="key" style="background:${pcol(r)}"></span>${runLabel(r)}</button>`).join("");
   $("chips").querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => select(+b.dataset.id)));
 }
 
@@ -374,7 +395,7 @@ function select(id) {
   SEL = DOC.runs.find(r => r.run_id === id);
   document.querySelectorAll(".chip").forEach(b => b.classList.toggle("active", +b.dataset.id === id));
   document.querySelectorAll("#runsTable tbody tr").forEach(tr => tr.classList.toggle("sel", +tr.dataset.id === id));
-  const r = SEL, c = gcol(r.group);
+  const r = SEL, c = pcol(r);
   const notes = [r.manifest_notes, ...(r.notes || [])].filter(Boolean);
   $("runView").innerHTML = `
     <div class="runhead"><span class="big">${runLabel(r)}</span><span class="notes">“${r.name}” · ${fmt(r.duration_s, 1)} s recorded · stopped ${r.stop_reason}
@@ -385,8 +406,8 @@ function select(id) {
       ${r.model ? `
       <div class="tile"><div class="tl">Right turn</div><div class="tv">${fmt(r.v_right_mps)}<span class="tu">m/s</span></div><div class="tn">heading ${fmt(r.right_dpsi_deg, 0)}° in ${fmt(r.right_t90 - r.right_t10)} s (10–90 %)</div></div>
       <div class="tile"><div class="tl">Left turn</div><div class="tv">${fmt(r.v_left_mps)}<span class="tu">m/s</span></div><div class="tn">heading +${fmt(r.left_dpsi_deg, 0)}°</div></div>
-      <div class="tile"><div class="tl">Effective friction</div><div class="tv">${fmt(r.mu_eff, 3)}</div><div class="tn">${r.mu_eff > DOC.stall_mu ? "above" : "below"} stall (${fmt(DOC.stall_mu, 3)}) · fit rms ${fmt(r.fit_rms_s, 2)} s</div></div>
-      <div class="tile"><div class="tl">Model: where they stop</div><div class="tv">${fmt(r.model_s_end_m, 1)}<span class="tu">m</span></div><div class="tn">${r.model_s_end_m >= 11.05 ? "on the exit flat" : "on the lower straight (stalled)"} · entry ${fmt(r.model_v_begin_mps)} m/s</div></div>
+      <div class="tile"><div class="tl">Friction turns / lower slide</div><div class="tv">${fmt(r.mu_eff, 2)} / ${fmt(r.mu_lower, 2)}</div><div class="tn">stall ${fmt(DOC.stall_mu, 3)} · turn fit rms ${fmt(r.fit_rms_s, 2)} s</div></div>
+      <div class="tile"><div class="tl">Top → at rest at the bottom</div><div class="tv">${fmt(r.model_time_on_slide_s, 1)}<span class="tu">s</span></div><div class="tn">push-off ${fmt(r.model_v_begin_mps)} m/s · bottom: ${r.exit_how}</div></div>
       <div class="tile"><div class="tl">Roughness</div><div class="tv">${fmt(r.peak_g_ride, 1)}<span class="tu">g peak</span></div><div class="tn">${r.impacts_over_3g} knocks > 3 g</div></div>` :
       `<div class="tile"><div class="tl">Peak</div><div class="tv">${fmt(r.peak_acc_g, 1)}<span class="tu">g</span></div><div class="tn">${fmt(r.peak_gyro_dps, 0)} deg/s — no turn pair, no slide landmarks</div></div>`}
     </div>
@@ -396,13 +417,14 @@ function select(id) {
       <div class="card"><h3>Rotation rate |ω|</h3><svg class="chart" id="cGyro" height="180"></svg></div>
       <div class="card"><h3>Acceleration |a| (low-passed)</h3><svg class="chart" id="cAcc" height="180"></svg></div>
       <div class="card"><h3>Sliding vibration (25–150 Hz rms, log)</h3><svg class="chart" id="cVib" height="180"></svg>
-        <p class="notes">Rubbing on the steel tube: ~0.01–0.3 g. At rest: under 0.006 g (dotted).</p></div>
+        <p class="notes">Rubbing on the steel tube: ~0.01–0.3 g. Lying still at the bottom: under ~0.012 g.</p></div>
       <div class="card"><h3>Reconstructed path (plan view)</h3><svg class="chart" id="cPlan" height="260"></svg></div>
     </div>`;
   const S = r.series, t = S.t;
   let x0 = t[0], x1 = t[t.length - 1];
-  if (r.model) { x0 = Math.max(t[0], Math.min(r.t_start ?? r.right_t_begin, r.right_t_begin - 3) - 2); x1 = Math.min(t[t.length - 1], Math.max(r.t_stop ?? 0, (r.left_t_end ?? r.right_t_end) + 4) + 2); }
-  const bands = r.model ? [{ x0: r.right_t_begin, x1: r.right_t_end, color: css("--seg-right"), label: "right" }].concat(r.left_t_begin ? [{ x0: r.left_t_begin, x1: r.left_t_end, color: css("--seg-left"), label: "left" }] : []) : [];
+  if (r.model) { x0 = Math.max(t[0], Math.min(r.t_start ?? r.right_t_begin, r.right_t_begin - 3) - 2); x1 = Math.min(t[t.length - 1], Math.max(r.t_exit ?? 0, (r.left_t_end ?? r.right_t_end) + 4) + 4); }
+  const bands = r.model ? [{ x0: r.right_t_begin, x1: r.right_t_end, color: css("--seg-right"), label: "right" },
+    { x0: r.t_exit - 0.06, x1: r.t_exit + 0.06, color: css("--text"), label: "bottom" }].concat(r.left_t_begin ? [{ x0: r.left_t_begin, x1: r.left_t_end, color: css("--seg-left"), label: "left" }] : []) : [];
   const clip = (xs, ys) => { const i0 = xs.findIndex(v => v >= x0), i1 = xs.findIndex(v => v > x1); return [xs.slice(i0, i1 < 0 ? undefined : i1), ys.slice(i0, i1 < 0 ? undefined : i1)]; };
   const ser = (name, ys, color, extra = {}) => { const [a, b] = clip(t, ys); return { name, color, x: a, y: b, ...extra }; };
   const pts = r.marks ? r.marks.t.map((tt, k) => ({ x: tt, y: interpAt(t, S.psi, tt), color: css("--text"), name: `landmark s=${r.marks.s[k].toFixed(2)} m` })) : [];
@@ -412,8 +434,8 @@ function select(id) {
   lineChart($("cVib"), { series: [ser("vibration g", S.vib, "#d55181", { width: 1.2 })], bands, xLabel: "time in recording (s)", yLabel: "g", xDomain: [x0, x1], logY: true, yDomain: [0.001, 1], hlines: [] });
   if (r.model) {
     const seg = (r.segments || []).map((sg, k) => ({ name: k ? "measured, left turn" : "measured, right turn", color: css("--text"), x: [sg[2], sg[3]], y: [sg[4], sg[4]], width: 4 }));
-    legend($("legV"), [{ name: `slide model, μ_eff ${fmt(r.mu_eff, 3)}`, color: c }, { name: "measured Δs/Δt over each turn", color: css("--text") }]);
-    lineChart($("cV"), { series: [{ name: "model m/s", color: c, x: r.model.t, y: r.model.v }].concat(seg), bands, xLabel: "time in recording (s)", yLabel: "m/s", xDomain: [x0, x1], yDomain: [0, 2.6] });
+    legend($("legV"), [{ name: "reconstructed speed", color: c, dash: !suit(r) }, { name: "measured over each turn", color: css("--text") }]);
+    lineChart($("cV"), { series: [{ name: "model m/s", color: c, x: r.model.t, y: r.model.v, dash: dashOf(r) }].concat(seg), bands, xLabel: "time in recording (s)", yLabel: "m/s", xDomain: [x0, x1], yDomain: [0, 2.6] });
   } else {
     $("cV").outerHTML = `<p class="notes">No turn pair in this recording, so there are no landmarks to measure speed against.</p>`;
   }
@@ -422,19 +444,19 @@ function select(id) {
 
 function gallery() {
   const figs = [
-    ["01_track_geometry.png", "Slide geometry: measured segment lengths, estimated 20° decline and 120°/45° turns"],
-    ["03_heading_turn_pairs.png", "Heading of every descent, aligned at the right turn — the slide's fingerprint"],
-    ["04_turn_sweeps.png", "Turn sweeps measured by the gyro vs. the track model"],
-    ["05_speed_vs_distance_data_vs_sim.png", "Speed along the slide: data vs. the simulation presets"],
-    ["12_position_vs_time.png", "Position vs. time: landmarks, fitted model, simulation"],
-    ["06_trajectories_plan.png", "Reconstructed trajectories, coloured by speed"],
-    ["07_effective_friction.png", "Fitted effective friction vs. the stall point"],
-    ["08_suit_vs_baseline.png", "Cop uniform vs. normal clothes, per rider"],
-    ["09_decline_angle_sensitivity.png", "Sensitivity to the unsurveyed decline angle"],
-    ["10_centripetal_check.png", "Cross-check: centripetal speed vs. landmark timing"],
-    ["11_impacts_vibration.png", "Peak g, knocks and sliding vibration"],
+    ["01_track_geometry.png", "Slide geometry: measured segment lengths, estimated 20° slope and 120°/45° turns"],
+    ["05_speed_along_the_slide.png", "Speed along the slide: riders vs. the simulation presets, same push-off"],
+    ["06_race_to_the_bottom.png", "The race down, and time from the top to the bottom of the slope"],
+    ["08_friction.png", "What slows them down: fitted friction vs. the stall line"],
+    ["09_suit_vs_normal.png", "Cop uniform vs. normal clothes, per rider"],
+    ["07_trajectories_plan.png", "Where each rider was fast or slow, seen from above"],
+    ["03_heading_turn_pairs.png", "The slide's fingerprint in the gyro heading"],
+    ["04_turn_sweeps.png", "Turn angles seen by the gyro vs. the slide model"],
+    ["10_slope_angle_sensitivity.png", "What depends on the unsurveyed slope angle"],
+    ["11_centripetal_check.png", "Cross-check: sideways acceleration vs. timing"],
+    ["12_impacts_vibration.png", "How rough was the ride"],
     ["13_runs_without_turn_signature.png", "Recordings without a turn pair (#15, #16)"],
-  ].concat(DOC.runs.map(r => [`02_run_${String(r.run_id).padStart(2, "0")}_overview.png`, `Run #${r.run_id} overview — ${r.name}`]));
+  ].concat(DOC.runs.filter(r => r.include && r.run_id !== 15).map(r => [`02_run_${String(r.run_id).padStart(2, "0")}_overview.png`, `Run #${r.run_id} overview — ${r.name}`]));
   $("gallery").innerHTML = figs.map(([f, cap]) => `<a href="results/${f}" target="_blank" rel="noopener"><figure><img loading="lazy" src="results/${f}" alt="${cap}"><figcaption>${cap}</figcaption></figure></a>`).join("");
 }
 

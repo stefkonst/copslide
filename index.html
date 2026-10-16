@@ -194,7 +194,8 @@
         <label for="pushRange">Push-off speed — <b id="pushVal">1.8</b>&nbsp;m/s</label>
         <input type="range" id="pushRange" min="0" max="3" value="1.8" step="0.1">
         <div class="note">Speed at the top of the slope. The measured riders all sit near the
-          stall point of the 20° slope (μ ≈ tan 20° = 0.36), so they only get going with a push.</div>
+          stall point of the 20° slope (μ ≈ tan 20° = 0.36), so they only get going with a push —
+          defaults to their measured average.</div>
       </div>
       <div class="field">
         <label for="replaySel">Replay a recorded run</label>
@@ -270,8 +271,9 @@ const CLOTHING = {
   // fitted to the recorded runs (analysis/analyze.py, μ_eff incl. everything
   // that slows a rider); values are refreshed from data/runs.json on load.
   // These already include position — the position multiplier is not applied.
-  measured_suit:   { mu: 0.379, dragK: 0.05, label: "cop uniform, measured", color: 0x23395d, measured: true },
-  measured_normal: { mu: 0.389, dragK: 0.05, label: "normal clothes, measured", color: 0x7a5a3a, measured: true },
+  // mu = upper slope + turns, muLower = from the end of the left turn down
+  measured_suit:   { mu: 0.379, muLower: 0.373, dragK: 0.05, label: "cop uniform, measured", color: 0x23395d, measured: true },
+  measured_normal: { mu: 0.389, muLower: 0.256, dragK: 0.05, label: "normal clothes, measured", color: 0x7a5a3a, measured: true },
   athletic: { mu: 0.12, dragK: 0.045, label: "nylon/spandex", color: 0x2fb6a8 },
   everyday: { mu: 0.22, dragK: 0.055, label: "cotton/denim",  color: 0x3b5c8c },
   winter:   { mu: 0.30, dragK: 0.085, label: "puffy jacket",  color: 0xcf6a2e },
@@ -451,7 +453,8 @@ function currentParams() {
   const mass = parseFloat(document.getElementById("massRange").value);
   const track = TRACK[activeTrack];
   const mu = cloth.measured ? cloth.mu * track : cloth.mu * pos.mulMu * track;
-  return { pos, cloth, mass, mu, dragK: cloth.dragK };
+  const muLower = cloth.measured ? cloth.muLower * track : mu;
+  return { pos, cloth, mass, mu, muLower, dragK: cloth.dragK };
 }
 
 // Same model as analysis/physics.py. The wall reaction combines gravity's
@@ -460,7 +463,8 @@ function currentParams() {
 // gravity and centripetal load add in quadrature, not linearly.
 function stepPhysics(dt) {
   if (replay.run) { stepReplay(dt); return; }
-  const { mu, dragK, mass } = currentParams();
+  const { mu, muLower, dragK, mass } = currentParams();
+  const S_LOWER = S_RIGHT_START + TURN_R_LEN + TURN_L_LEN;
   const sub = 1 / 480;
   let remaining = dt;
   while (remaining > 1e-9 && sim.s < TOTAL_LENGTH) {
@@ -471,7 +475,7 @@ function stepPhysics(dt) {
     const v2 = sim.v * sim.v;
     const normal = Math.hypot(G * cosTheta + v2 * kv, v2 * kh); // per-unit-mass wall reaction
     const dragDecel = (dragK * v2) / Math.max(20, mass);
-    const a = G * sinTheta - mu * normal - dragDecel;
+    const a = G * sinTheta - (sim.s < S_LOWER ? mu : muLower) * normal - dragDecel;
     if (sim.v <= 1e-4 && a <= 0) {               // static: friction holds the rider
       sim.v = 0; sim.stalled = true; break;
     }
@@ -528,10 +532,13 @@ fetch("data/runs.json").then(r => r.ok ? r.json() : null).then(doc => {
     o.value = i; o.textContent = `#${r.run_id} ${r.subject} · ${r.clothing} — μ ${r.mu_eff.toFixed(3)}`;
     sel.appendChild(o);
   });
-  const mean = g => { const v = replay.runs.filter(r => r.group === g).map(r => r.mu_eff); return v.length ? v.reduce((a, b) => a + b) / v.length : null; };
-  const pushOf = g => { const v = replay.runs.filter(r => r.group === g).map(r => r.model_v_begin_mps); return v.length ? v.reduce((a, b) => a + b) / v.length : null; };
-  if (mean("full suit")) { CLOTHING.measured_suit.mu = mean("full suit"); CLOTHING.measured_suit.push = pushOf("full suit"); }
-  if (mean("baseline")) { CLOTHING.measured_normal.mu = mean("baseline"); CLOTHING.measured_normal.push = pushOf("baseline"); }
+  const avg = (g, k) => { const v = replay.runs.filter(r => r.group === g && r[k] != null).map(r => r[k]); return v.length ? v.reduce((a, b) => a + b) / v.length : null; };
+  for (const [key, g] of [["measured_suit", "full suit"], ["measured_normal", "baseline"]]) {
+    if (avg(g, "mu_eff") == null) continue;
+    CLOTHING[key].mu = avg(g, "mu_eff"); CLOTHING[key].muLower = avg(g, "mu_lower") ?? avg(g, "mu_eff");
+  }
+  // every preset starts with the riders' measured push-off speed by default
+  if (doc.v_push) setPush(doc.v_push);
   updateMuNote();
   const want = +new URLSearchParams(location.search).get("replay");
   const idx = replay.runs.findIndex(r => r.run_id === want);
@@ -997,7 +1004,7 @@ function updateMuNote() {
   const { mu } = currentParams();
   const c = CLOTHING[document.getElementById("clothSel").value];
   document.getElementById("muNote").textContent = c.measured
-    ? `μ ≈ ${mu.toFixed(3)} · fitted to the recorded runs (stall at ${Math.tan(THETA).toFixed(3)})`
+    ? `μ ≈ ${mu.toFixed(3)} turns / ${currentParams().muLower.toFixed(3)} lower slide · fitted to the recorded runs (stall ${Math.tan(THETA).toFixed(3)})`
     : `μ ≈ ${mu.toFixed(3)} · illustrative, not measured`;
 }
 updateMuNote();
@@ -1028,10 +1035,10 @@ scrub.addEventListener("input", () => {
 
 function finishRun() {
   const mu = replay.run ? replay.run.mu_eff : currentParams().mu;
-  const where = sim.s >= S_BOTTOM ? "on the exit flat" : sim.s >= S_RIGHT_START + TURN_R_LEN + TURN_L_LEN ? "on the lower straight" : "in the turns";
+  const where = sim.s >= S_BOTTOM ? "on the exit flat" : sim.s >= S_RIGHT_START + TURN_R_LEN + TURN_L_LEN ? "on the lower straight" : sim.s >= S_RIGHT_START ? "in the turns" : "on the upper straight";
   const head = replay.run ? `Replay #${replay.run.run_id} ${replay.run.subject} (${replay.run.clothing}) · ` : "";
   document.getElementById("resultLine").innerHTML = head + (sim.stalled
-    ? `Stalled <b>${where}</b> at s = <b>${sim.s.toFixed(2)} m</b> · `
+    ? (sim.s >= S_BOTTOM ? `Came to rest <b>on the exit flat</b> at s = <b>${sim.s.toFixed(2)} m</b> · ` : `Stalled <b>${where}</b> at s = <b>${sim.s.toFixed(2)} m</b> · `)
     : `Exit speed <b>${sim.v.toFixed(2)} m/s</b> (${(sim.v * 3.6).toFixed(1)} km/h) · `) +
     `peak <b>${sim.peakV.toFixed(2)} m/s</b> · time <b>${sim.t.toFixed(2)} s</b> · μ≈${mu.toFixed(3)}`;
   playBtn.textContent = "▶ Run";
