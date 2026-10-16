@@ -93,7 +93,7 @@
   .frow .fb{height:12px; position:relative}
   .frow .fb i{position:absolute; left:0; top:0; bottom:0; border-radius:0 4px 4px 0; box-sizing:border-box}
   .frow b{font-family:var(--font-mono); color:var(--text); font-weight:500; text-align:right}
-  .vidcard{display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,1fr); gap:14px; align-items:start}
+  .vidcard{display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:14px; align-items:start}
   @media (max-width:860px){.vidcard{grid-template-columns:1fr}}
   .vidwrap video{width:100%; display:block; border-radius:6px; background:#000}
   .vidside .tile .tv{font-size:20px}
@@ -108,85 +108,47 @@
 </header>
 
 <main>
-  <p class="lede">A waist-worn IMU logger (ESP32-S3 + QMI8658, 460 Hz) rode down the slide with Angel, Stef and two
-    volunteers — in a cop uniform and in normal clothes. The slide's turns show up in the gyro as a right-then-left
-    heading swing; timing those against the slide's measured geometry gives speed, and a physics fit gives the
-    friction behind it.</p>
+  <p class="lede">We clipped a motion logger to Angel's and Stef's waists, timed them down the slide in a cop uniform
+    and in normal clothes, and compared them with the viral cop.</p>
   <div class="tiles" id="tiles"><div class="loading">loading data/runs.json…</div></div>
 
-  <h2>Data vs. simulation</h2>
   <div class="grid2">
     <div class="card">
-      <h3>Speed along the slide — everyone starts with the same push</h3>
-      <div class="legend" id="legSpeed"></div>
-      <svg class="chart" id="cmpSpeed" height="300"></svg>
-      <p class="notes">Coloured lines: each rider's reconstructed speed, ending where they came to rest on the exit flat.
-        ■ = speed measured on video. Gold: the cop, the model fitted to his clip. Grey dotted: the same model with the
-        friction we measured in the cop uniform, started with our riders' average push-off. Our riders lose speed in the turns and pick it up again on the lower slide;
-        the cop never slowed down.</p>
+      <h3>Time from the top to the bottom of the slope</h3>
+      <div id="finish"></div>
     </div>
     <div class="card">
-      <h3>The race down — steeper = faster</h3>
-      <div class="legend" id="legPos"></div>
-      <svg class="chart" id="cmpPos" height="300"></svg>
-      <p class="notes">● the four IMU turn landmarks · ■ video gates on the lower slide. Gold: the cop, fitted to his video.</p>
-      <h3 style="margin-top:12px">Time from the top to the bottom of the slope (shorter = faster)</h3>
-      <div id="finish"></div>
+      <h3>The race down: where everyone is, second by second</h3>
+      <svg class="chart" id="cmpPos" height="290"></svg>
     </div>
   </div>
 
-  <h2>All runs</h2>
-  <div class="tablewrap"><table id="runsTable"></table></div>
+  <div class="card">
+    <h3>Speed along the slide</h3>
+    <svg class="chart" id="cmpSpeed" height="340"></svg>
+  </div>
 
-  <h2>Run explorer</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>Average speed on each stretch</h3>
+      <svg class="chart" id="cSect" height="280"></svg>
+    </div>
+    <div class="card">
+      <h3>Why: friction</h3>
+      <svg class="chart" id="cFric" height="280"></svg>
+    </div>
+  </div>
+
+  <h2>Each run</h2>
   <div class="chips" id="chips"></div>
   <div id="runView"></div>
 
-  <h2>Figures</h2>
-  <p>Static figures from <code>analysis/make_figures.py</code> (click to open full size).</p>
+  <h2>More figures</h2>
   <div class="gallery" id="gallery"></div>
 
-  <h2>How the numbers are made</h2>
-  <ol>
-    <li><b>Orientation.</b> Gyro bias and gravity come from the still second before each recording triggers; the gyro is
-      integrated to an orientation with a weak tilt correction that only acts when the board is barely moving. The
-      rotation about the vertical gives the <b>heading</b> — its changes are exact (no magnetometer needed).</li>
-    <li><b>Finding the descent.</b> A recording also holds getting in, scooting and climbing out. The unmistakable part
-      is the <b>turn pair</b>: a right turn (heading falls 100–155°) directly followed by a left turn. The 10 % and 90 %
-      points of each turn are pinned to the slide (right turn = 2.35 m, left = 1.00 m).</li>
-    <li><b>Reaching the bottom.</b> Every recording ran until the rider was out, so the end of the ride is a landmark too:
-      the first moment after the turns the rider is lying still at the bottom (no rubbing vibration, no rotation), or gets up,
-      whichever is first.</li>
-    <li><b>Speed.</b> Distance between landmarks ÷ time between them. A slide model
-      (<code>dv/dt = g sin θ − μ·N − drag</code>, wall reaction <code>N</code> from gravity + centripetal load in quadrature)
-      is fitted in two zones: friction on the upper slope and turns from the four turn landmarks, friction on the lower
-      slide so the rider comes to rest on the exit flat when the IMU says they did. Run backwards to the top, it also gives
-      the push-off speed (~1.8 m/s on average) — the grey reference curve starts with that same push.</li>
-    <li><b>Video.</b> Fixed cameras at the bottom see the last ~4.2 m (tube mouth → open trough → exit flat). The rider is
-      tracked frame by frame against the empty slide; position is read against four reference points on the slide. Each clip
-      is put on the IMU clock with one physical event seen in both (landing on the flat, or the free fall of shooting
-      off the end) and the lower-slide friction is fitted to the video gates. The cop's news clip is handheld, so only
-      two gates (tube mouth, end lip) are read by hand. The clips themselves are not published here.</li>
-    <li><b>Checks.</b> <i>v = a<sub>centripetal</sub>/yaw rate</i> in the right turn (no geometry needed) reads ~2× higher —
-      it is biased upward by bumps and tilt error, so it is shown only as an upper bound. A sweep of the unknown slope
-      angle (15–25°) shows the timing is robust; the absolute μ is not.</li>
-  </ol>
-  <div class="warn"><b>Caveats.</b> One run per rider per condition — differences between suit and normal clothes are
-    indicative, not statistically tested, and normal clothes always went first. The slope (30°, as reported) and turn angles are
-    estimates, not a survey. Stef's normal-clothes run (#18) is <b>uncertain</b>: its name has a “?”, and its turn
-    landmarks don't fit one smooth ride (1.4 s between the turns vs. ~0.4 s in every other run). Angel's normal-clothes
-    run (#15) never reached the turns while recording. Run #16 is not a descent; Rider A (#13) is left out.</div>
-
-  <h2>Recording and syncing</h2>
-  <ol>
-    <li>Wear the logger at the waist. Triple-tap (or tap <b>Arm</b> on the phone page) and hold still ~1 s → <b>READY</b>.
-      It triggers on the push-off and keeps ~2.2 s from before; lie still 2.5 s at the bottom to auto-stop (or <b>Stop</b> on the phone).</li>
-    <li>On the phone: join Wi-Fi <code>CopSlide</code> → <code>http://192.168.4.1</code>. Rename runs, view raw plots,
-      <b>Analyze</b> for an on-phone speed estimate and 3D replay, download <b>BIN</b>/<b>CSV</b>.</li>
-    <li>Full analysis on a computer — USB sync and the pipeline (writes <code>results/</code> and this page's data):
-<pre>python tools/serial_sync.py COM3 data/raw/logger
-python analysis/make_figures.py</pre></li>
-  </ol>
+  <p class="notes" style="margin-top:22px">How: the slide's turns show up in the logger's gyro; timing them against the
+    slide's measured lengths, plus a camera at the bottom, gives speed. One run per rider per outfit, so treat
+    differences as indicative.</p>
   <p class="notes" id="gen"></p>
 </main>
 <div class="tip" id="tip"></div>
@@ -221,7 +183,7 @@ function interpAt(xs, ys, x) {
           hlines:[{y,label}], xLabel, yLabel, xDomain, yDomain, logY, xFmt, yFmt} */
 function lineChart(svg, o) {
   const W = svg.clientWidth || 600, H = +svg.getAttribute("height") || 260;
-  const M = { l: 48, r: 12, t: 16, b: 34 };
+  const M = { l: 48, r: o.rightPad || 12, t: 16, b: 34 };
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   const allX = o.series.flatMap(s => s.x).concat((o.points || []).map(p => p.x));
   const allY = o.series.flatMap(s => s.y).concat((o.points || []).map(p => p.y)).filter(v => v != null && isFinite(v));
@@ -272,7 +234,17 @@ function lineChart(svg, o) {
       ? `<circle cx="${X}" cy="${Y}" r="4.5" fill="${css("--panel")}" stroke="${p.color}" stroke-width="2.2"/>`
       : `<circle cx="${X}" cy="${Y}" r="5" fill="${p.color}" stroke="${css("--panel")}" stroke-width="2"/>`;
   });
-  g += `</g><line id="xh_${svg.id}" y1="${M.t}" y2="${H - M.b}" stroke="${css("--text-faint")}" visibility="hidden"/>`;
+  g += `</g>`;
+  const labs = o.series.filter(s => s.label).map(s => {
+    if (s.labelX != null) { const yv = interpAt(s.x, s.y, s.labelX); if (yv != null) return { X: sx(s.labelX), Y: sy(yv) + (s.labelDy || -10), t: s.label, c: s.color, a: "middle" }; }
+    let n = s.x.length - 1;
+    while (n > 0 && (s.x[n] > x1 || s.y[n] == null || tyv(s.y[n]) > y1)) n--;
+    return { X: sx(s.x[n]), Y: Math.max(M.t + 6, sy(s.y[n])), t: s.label, c: s.color };
+  }).sort((a, b) => a.Y - b.Y);
+  for (let i = 1; i < labs.length; i++) if (labs[i].Y - labs[i - 1].Y < 14) labs[i].Y = labs[i - 1].Y + 14;
+  labs.forEach(l => g += `<text x="${l.a ? l.X : l.X + 6}" y="${l.Y + 4}" fill="${l.c}" font-size="11.5" font-weight="600" text-anchor="${l.a || "start"}" paint-order="stroke" stroke="${css("--panel")}" stroke-width="3">${l.t}</text>`);
+  (o.notes || []).forEach(n => g += `<text x="${sx(n.x)}" y="${sy(n.y)}" fill="${n.color || css("--text")}" font-size="${n.size || 11.5}" font-style="italic" text-anchor="${n.anchor || "middle"}">${n.text}</text>`);
+  g += `<line id="xh_${svg.id}" y1="${M.t}" y2="${H - M.b}" stroke="${css("--text-faint")}" visibility="hidden"/>`;
   g += `<rect x="${M.l}" y="${M.t}" width="${W - M.l - M.r}" height="${H - M.t - M.b}" fill="transparent" id="hit_${svg.id}"/>`;
   g += `<line id="cur_${svg.id}" y1="${M.t}" y2="${H - M.b}" stroke="${css("--accent")}" stroke-width="2" visibility="hidden"/>`;
   svg.innerHTML = g;
@@ -310,98 +282,126 @@ function legend(el, items) {
 }
 
 /* -------------------------------------------------------------- sections */
-const runLabel = r => `${r.subject} · ${r.clothing}${r.low_confidence ? " (uncertain)" : ""} #${r.run_id}`;
+const KMH = 3.6;
+const wet = r => /wet jeans/i.test(r.manifest_notes || "");
+const nameOf = r => `${r.subject} — ${wet(r) ? "wet jeans" : r.clothing}`;
 const analysed = () => DOC.runs.filter(r => r.model && r.include);
+const sBot = () => DOC.track.landmarks_m.bottom_of_decline;
+const tBottom = r => { const t0 = r.model.t[0]; return interpAt(r.model.s, r.model.t.map(t => t - t0), sBot()); };
+const vMax = r => Math.max(...r.model.v);
+const rng = (xs, d = 0) => { const a = fmt(Math.min(...xs), d), b = fmt(Math.max(...xs), d); return a === b ? a : `${a}–${b}`; };
+const refSim = () => (DOC.sim || []).find(x => x.label.startsWith("Cop uniform"));
 
 function tiles() {
-  const A = analysed(), mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN;
-  const su = A.filter(suit), no = A.filter(r => r.clothing === "normal clothes");
-  const lst = (rs, k, d) => rs.map(r => `${r.subject} ${fmt(r[k], d)}${r.low_confidence ? " (uncertain)" : ""}`).join(" · ");
-  const vFree = Math.sqrt(2 * 9.81 * DOC.track.drop_m);
+  const A = analysed(), su = A.filter(suit), w = A.find(wet);
+  const copT = DOC.cop ? interpAt(DOC.cop.model.s, DOC.cop.model.t, sBot()) : null;
   const t = [
-    { tl: "Top of the slope → at rest, cop uniform", tv: fmt(mean(su.map(r => r.model_time_on_slide_s)), 1), tu: "s", tn: lst(su, "model_time_on_slide_s", 1) },
-    { tl: "…in normal clothes", tv: fmt(mean(no.map(r => r.model_time_on_slide_s)), 1), tu: "s", tn: lst(no, "model_time_on_slide_s", 1) + " · Angel never reached the turns" },
-    { tl: "Speed through the turns", tv: `${fmt(Math.min(...A.map(r => r.v_turns_mps)), 1)}–${fmt(Math.max(...A.map(r => r.v_turns_mps)), 1)}`, tu: "m/s",
-      tn: `walking pace. A frictionless slide this tall would reach ${fmt(vFree, 1)} m/s` },
-    ...(DOC.cop ? [{ tl: "The cop (viral video)", tv: fmt(DOC.cop.v_visible_mps, 1), tu: "m/s",
-      tn: `over the visible trough + flat, ~2–3× our riders · friction μ ≈ ${fmt(DOC.cop.mu, 2)} (${fmt(Math.min(...DOC.cop.mu_range), 2)}–${fmt(Math.max(...DOC.cop.mu_range), 2)})` }] : []),
-    { tl: "Our riders' friction: turns / lower slide", tv: `${fmt(Math.min(...A.map(r => r.mu_eff)), 2)}–${fmt(Math.max(...A.map(r => r.mu_eff)), 2)} / ${fmt(Math.min(...A.filter(r => r.lower_source === "video").map(r => r.mu_lower)), 2)}–${fmt(Math.max(...A.filter(r => r.lower_source === "video").map(r => r.mu_lower)), 2)}`, tu: "μ",
-      tn: `stall = tan ${fmt(DOC.track.theta_deg, 0)}° = ${fmt(DOC.stall_mu, 3)}: above it you slow down (turns), below it you speed up (lower slide, from video)` },
-  ];
+    DOC.cop && { tl: "The cop", tv: fmt(DOC.cop.v_visible_mps * KMH, 0), tu: "km/h", tn: `measured on his video · ${fmt(copT, 1)} s top to bottom` },
+    su.length && { tl: "Angel & Stef in uniform, top speed", tv: rng(su.map(r => vMax(r) * KMH)), tu: "km/h", tn: `${rng(su.map(tBottom), 1)} s top to bottom` },
+    su.length && { tl: "…in the turns", tv: rng(su.map(r => r.v_turns_mps * KMH)), tu: "km/h", tn: "walking pace" },
+    w && { tl: "Stef in wet jeans", tv: fmt(tBottom(w), 0), tu: "s", tn: "stuck in the turns, hopped down the rest" },
+  ].filter(Boolean);
   $("tiles").innerHTML = t.map(x => `<div class="tile"><div class="tl">${x.tl}</div>` +
     `<div class="tv">${x.tv}<span class="tu">${x.tu}</span></div><div class="tn">${x.tn}</div></div>`).join("");
 }
 
-function segBands(xKey) {
+function segBands() {
   const b = DOC.track.segment_bounds_m, c = { "upper straight": "--seg-upper", "right turn": "--seg-right", "left turn": "--seg-left", "lower straight": "--seg-lower", "exit flat": "--seg-flat", "entry flat": "--seg-flat" };
-  return Object.entries(b).map(([k, [a, z]]) => ({ x0: a, x1: z, color: css(c[k]), label: k.replace(" straight", "").replace(" turn", "") }));
+  return Object.entries(b).map(([k, [a, z]]) => ({ x0: a, x1: z, color: css(c[k]), label: k.replace(" straight", "").replace("entry ", "").replace("exit ", "") }));
 }
 
-function compareCharts() {
-  const A = analysed(), simCols = [css("--sim1"), css("--sim2"), css("--sim3")];
-  const sims = DOC.sim.filter(s => s.label.startsWith("Cop uniform"));
-  const series = [], points = [], leg = [];
-  sims.forEach((s, i) => { series.push({ name: s.label, color: simCols[i], x: s.s, y: s.v, dash: "2 4", width: 1.6 }); });
-  if (DOC.cop) {
-    series.push({ name: "the cop (viral video)", color: css("--cop"), x: DOC.cop.model.s, y: DOC.cop.model.v, width: 3 });
-    leg.push({ name: "the cop (viral video)", color: css("--cop") });
-  }
-  A.forEach(r => {
-    const vd = Object.values(DOC.videos || {}).find(v => v.run_id === r.run_id);
-    if (vd && vd.gates) {
-      const g = vd.gates, pts = [["9.5", "11.05"], ["11.45", "12.4"]];
-      pts.forEach(([a, b]) => { if (g[a] != null && g[b] != null) points.push({ x: (+a + +b) / 2, y: (b - a) / (g[b] - g[a]), color: pcol(r), name: `${runLabel(r)} video`, hollow: !suit(r), square: true }); });
-    }
-    series.push({ name: runLabel(r), color: pcol(r), x: r.model.s, y: r.model.v, dash: dashOf(r), opacity: r.low_confidence ? 0.5 : 1 });
-    leg.push({ name: runLabel(r), color: pcol(r), dash: !suit(r) });
-    (r.segments || []).forEach(sg => points.push({ x: (sg[0] + sg[1]) / 2, y: sg[4], color: pcol(r), name: `${runLabel(r)} measured`, hollow: !suit(r) }));
-  });
-  const keyRows = [{ name: "solid = cop uniform", color: css("--text-dim") }, { name: "dashed = normal clothes / unknown", color: css("--text-dim"), dash: 1 },
-    { name: "● IMU, measured over each turn · ■ video", color: css("--text-dim"), dot: 1 }];
-  legend($("legSpeed"), leg.concat(sims.map((s, i) => ({ name: `model with our measured friction (μ ${fmt(s.mu, 2)} turns, ${fmt(s.mu_lower, 2)} lower)`, color: simCols[i], dash: 1 })), keyRows));
-  lineChart($("cmpSpeed"), { series, points, bands: segBands(), xLabel: "distance along slide (m)", yLabel: "speed (m/s)", xDomain: [0, DOC.track.length_m], yDomain: [0, 7] });
-
-  // race: distance vs time since the top of the slope
-  const s2 = [], p2 = [], fin = [];
-  const sBottom = DOC.track.landmarks_m.bottom_of_decline;
-  if (DOC.cop) {
-    s2.push({ name: "the cop (viral video)", color: css("--cop"), x: DOC.cop.model.t, y: DOC.cop.model.s, width: 3 });
-    fin.push({ name: "the cop (model fitted to the video)", t: interpAt(DOC.cop.model.s, DOC.cop.model.t, sBottom), color: css("--cop"), fill: true });
-  }
-  sims.forEach((s, i) => { s2.push({ name: s.label, color: simCols[i], x: s.t, y: s.s, dash: "2 4", width: 1.6 }); fin.push({ name: "model with our measured friction (uniform)", t: interpAt(s.s, s.t, sBottom), color: simCols[i], fill: true }); });
-  A.forEach(r => {
-    const t0 = r.model.t[0], tt = r.model.t.map(t => t - t0);
-    s2.push({ name: runLabel(r), color: pcol(r), x: tt, y: r.model.s, dash: dashOf(r), opacity: r.low_confidence ? 0.5 : 1 });
-    r.marks.t.forEach((t, k) => p2.push({ x: t - t0, y: r.marks.s[k], color: pcol(r), name: `${runLabel(r)} landmark`, hollow: !suit(r) }));
-    const vd = Object.values(DOC.videos || {}).find(v => v.run_id === r.run_id);
-    if (vd && vd.offset != null) Object.entries(vd.gates).forEach(([gs, gt]) => p2.push({ x: gt + vd.offset - t0, y: +gs, color: pcol(r), name: `${runLabel(r)} video gate`, hollow: !suit(r), square: true }));
-    fin.push({ name: runLabel(r), t: interpAt(r.model.s, tt, sBottom), color: pcol(r), fill: suit(r) });
-  });
-  legend($("legPos"), leg.concat(keyRows.slice(0, 2)));
-  lineChart($("cmpPos"), { series: s2, points: p2, xLabel: "time since leaving the top (s)", yLabel: "distance along slide (m)", xDomain: [0, 11], yDomain: [0, DOC.track.length_m],
-    hlines: [{ y: sBottom, label: "bottom of the slope" }] });
+function finish() {
+  const fin = [];
+  if (DOC.cop) fin.push({ name: "the cop", t: interpAt(DOC.cop.model.s, DOC.cop.model.t, sBot()), color: css("--cop"), fill: true });
+  analysed().forEach(r => fin.push({ name: nameOf(r), t: tBottom(r), color: pcol(r), fill: suit(r) }));
   fin.sort((a, b) => a.t - b.t);
-  const tmax = Math.max(...fin.map(f => f.t)) * 1.15;
+  const tmax = Math.max(...fin.map(f => f.t)) * 1.08;
   $("finish").innerHTML = fin.map(f => `<div class="frow"><span class="fl">${f.name}</span><span class="fb"><i style="width:${(f.t / tmax * 100).toFixed(1)}%;` +
-    `${f.fill ? `background:${f.color}` : `border:2px solid ${f.color}`}"></i></span><b>${fmt(f.t, 1)} s</b></div>`).join("");
+    `${f.fill ? `background:${f.color}` : `border:2px solid ${f.color}`}"></i></span><b>${fmt(f.t, 1)} s</b></div>`).join("") +
+    `<p class="notes">Filled = cop uniform, outline = normal clothes or unknown.</p>`;
 }
 
-function table() {
-  const cols = [
-    ["#", r => r.run_id, "l"], ["run name", r => r.name, "l"], ["rider", r => r.subject, "l"], ["clothing", r => `<span class="key" style="background:${pcol(r)}"></span>${r.clothing}`, "l"],
-    ["right turn °", r => fmt(r.right_dpsi_deg, 0)], ["left turn °", r => fmt(r.left_dpsi_deg, 0)],
-    ["v right m/s", r => fmt(r.v_right_mps)], ["v left m/s", r => fmt(r.v_left_mps)], ["v turns m/s", r => fmt(r.v_turns_mps)],
-    ["μ turns", r => fmt(r.mu_eff, 3)], ["μ lower", r => fmt(r.mu_lower, 3)], ["push-off m/s", r => fmt(r.model_v_begin_mps)],
-    ["top → rest s", r => fmt(r.model_time_on_slide_s, 1)], ["lower slide from", r => r.lower_source === "video" ? "video" : r.lower_source === "IMU rest time" ? "IMU only" : "—", "l"],
-    ["peak g", r => fmt(r.peak_g_ride ?? r.peak_acc_g, 1)], ["notes", r => [r.manifest_notes, ...(r.notes || [])].filter(Boolean).join(" · "), "note"],
-  ];
-  $("runsTable").innerHTML = `<thead><tr>${cols.map(c => `<th class="${c[2] === "l" ? "l" : ""}">${c[0]}</th>`).join("")}</tr></thead><tbody>` +
-    DOC.runs.map(r => `<tr data-id="${r.run_id}" style="${r.include ? "" : "opacity:.55"}">${cols.map(c => `<td class="${c[2] || ""}">${c[1](r) ?? "—"}</td>`).join("")}</tr>`).join("") + "</tbody>";
-  $("runsTable").querySelectorAll("tbody tr").forEach(tr => tr.addEventListener("click", () => { select(+tr.dataset.id); $("runView").scrollIntoView({ behavior: "smooth", block: "start" }); }));
+function speedChart() {
+  const series = [], ref = refSim();
+  if (ref) series.push({ name: "model, our friction", label: "model, our friction", labelX: 2.6, labelDy: 18, color: css("--sim3"), x: ref.s, y: ref.v.map(v => v * KMH), dash: "2 4", width: 1.8 });
+  if (DOC.cop) series.push({ name: "the cop", label: "the cop", color: css("--cop"), x: DOC.cop.model.s, y: DOC.cop.model.v.map(v => v * KMH), width: 3 });
+  const LX = { 17: [10.6, -12], 19: [9.2, -14], 14: [9.6, -10], 18: [9.0, -8] };
+  analysed().forEach(r => series.push({ name: nameOf(r), label: nameOf(r), labelX: (LX[r.run_id] || [10])[0], labelDy: (LX[r.run_id] || [0, -10])[1], color: pcol(r), x: r.model.s, y: r.model.v.map(v => v * KMH), dash: dashOf(r), width: 2.2 }));
+  const b = DOC.track.segment_bounds_m;
+  lineChart($("cmpSpeed"), { series, bands: segBands(), xLabel: "distance down the slide (m)", yLabel: "speed (km/h)", rightPad: 70,
+    xDomain: [0, DOC.track.length_m], yDomain: [0, 26], yFmt: v => v.toFixed(0),
+    notes: [{ x: (b["right turn"][0] + b["left turn"][1]) / 2, y: 12, text: "turns: we slow to walking pace" },
+            { x: (b["lower straight"][0] + b["lower straight"][1]) / 2, y: 13.5, text: "straight: we speed up again" },
+            { x: 2.6, y: 16, text: "the cop accelerates all the way", color: css("--cop") },
+            { x: 0.3, y: 1.2, text: "push-off", anchor: "start", size: 10.5 }] });
+}
+
+function raceChart() {
+  const series = [], ref = refSim();
+  if (DOC.cop) series.push({ name: "the cop", label: "the cop", color: css("--cop"), x: DOC.cop.model.t, y: DOC.cop.model.s, width: 3 });
+  if (ref) series.push({ name: "model, our friction", color: css("--sim3"), x: ref.t, y: ref.s, dash: "2 4", width: 1.8 });
+  analysed().forEach(r => { const t0 = r.model.t[0]; const lx = { 17: [6.3, 18], 19: [4.6, -12], 14: [8.6, 16], 18: [8.0, -10] }[r.run_id] || [5, -10];
+    series.push({ name: nameOf(r), label: r.subject + (wet(r) ? " (wet jeans)" : r.clothing === "normal clothes" ? " (normal)" : ""), labelX: lx[0], labelDy: lx[1], color: pcol(r), x: r.model.t.map(t => t - t0), y: r.model.s, dash: dashOf(r), width: 2.2 }); });
+  lineChart($("cmpPos"), { series, xLabel: "seconds since leaving the top", yLabel: "metres down the slide", rightPad: 60,
+    xDomain: [0, 10], yDomain: [0, DOC.track.length_m], yFmt: v => v.toFixed(0), xFmt: v => v.toFixed(0),
+    hlines: [{ y: sBot(), label: "bottom of the slope" }],
+    notes: [{ x: 9.8, y: 1.0, text: "steeper line = faster", anchor: "end" }] });
+}
+
+/* grouped bars: groups [{name, c, fill, bars: [[label, value], ...]}] */
+function barChart(svg, groups, o) {
+  const W = svg.clientWidth || 600, H = +svg.getAttribute("height");
+  const M = { l: 44, r: 12, t: 18, b: 46 }, ymax = o.ymax;
+  const gw = (W - M.l - M.r) / groups.length, nb = Math.max(...groups.map(g => g.bars.length)), bw = Math.min(30, gw * 0.8 / nb);
+  const Y = v => H - M.b - Math.min(v, ymax) / ymax * (H - M.t - M.b);
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  let g = "";
+  o.ticks.forEach(v => g += `<line x1="${M.l}" x2="${W - M.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="${css("--grid")}"/>` +
+    `<text x="${M.l - 6}" y="${Y(v) + 4}" fill="${css("--text-faint")}" font-size="10" text-anchor="end">${o.fmt(v)}</text>`);
+  groups.forEach((gr, i) => {
+    const cx = M.l + gw * (i + 0.5), n = gr.bars.length;
+    gr.bars.forEach(([lab, v], k) => {
+      const x = cx + (k - (n - 1) / 2) * bw * 1.12 - bw / 2;
+      if (v == null || !isFinite(v)) g += `<text x="${x + bw / 2}" y="${H - M.b - 5}" fill="${css("--text-faint")}" font-size="10" text-anchor="middle">–</text>`;
+      else g += `<rect x="${x}" y="${Y(v)}" width="${bw}" height="${H - M.b - Y(v)}" rx="2" fill="${gr.fill === false ? "none" : (o.barColor ? o.barColor(k) : gr.c)}" stroke="${gr.c}" stroke-width="${gr.fill === false ? 2 : 0}" opacity="${o.barOpacity ? o.barOpacity(k) : 1}"><title>${gr.name}, ${lab}: ${o.fmt(v)}</title></rect>` +
+        `<text x="${x + bw / 2}" y="${Y(v) - 4}" fill="${css("--text-dim")}" font-size="9.5" text-anchor="middle">${o.fmt(v)}${v > ymax ? "↑" : ""}</text>`;
+    });
+    g += `<text x="${cx}" y="${H - M.b + 16}" fill="${gr.c}" font-size="11" font-weight="600" text-anchor="middle">${gr.name}</text>`;
+  });
+  if (o.key) g += `<text x="${M.l}" y="${H - 6}" fill="${css("--text-dim")}" font-size="10.5">${o.key}</text>`;
+  if (o.hline) g += `<line x1="${M.l}" x2="${W - M.r}" y1="${Y(o.hline.y)}" y2="${Y(o.hline.y)}" stroke="${css("--text")}" stroke-dasharray="5 4" stroke-width="1.4"/>` +
+    `<text x="${W - M.r}" y="${Y(o.hline.y) - 6}" fill="${css("--text")}" font-size="10.5" text-anchor="end">${o.hline.label}</text>`;
+  g += `<text transform="translate(12 ${(M.t + H - M.b) / 2}) rotate(-90)" fill="${css("--text-dim")}" font-size="11" text-anchor="middle">${o.yLabel}</text>`;
+  svg.innerHTML = g;
+}
+
+const SECT = [["upper straight", "top straight"], ["turns", "turns"], ["lower straight", "last straight"], ["exit flat", "end flat"]];
+function sectionSpeeds(S, T) {
+  const b = DOC.track.segment_bounds_m;
+  const span = { "upper straight": b["upper straight"], "turns": [b["right turn"][0], b["left turn"][1]], "lower straight": b["lower straight"], "exit flat": b["exit flat"] };
+  return SECT.map(([k]) => { const [a, z] = span[k], ta = interpAt(S, T, a), tz = interpAt(S, T, Math.min(z, S[S.length - 1]));
+    return ta == null || tz == null || tz <= ta ? null : (Math.min(z, S[S.length - 1]) - a) / (tz - ta) * KMH; });
+}
+function sectChart() {
+  const groups = [];
+  if (DOC.cop) groups.push({ name: "the cop", c: css("--cop"), bars: sectionSpeeds(DOC.cop.model.s, DOC.cop.model.t).map((v, k) => [SECT[k][1], v]) });
+  analysed().filter(r => !wet(r)).forEach(r => groups.push({ name: r.subject, c: pcol(r), fill: suit(r), bars: sectionSpeeds(r.model.s, r.model.t).map((v, k) => [SECT[k][1], v]) }));
+  const shades = ["--seg-upper", "--seg-right", "--seg-lower", "--seg-flat"].map(css);
+  barChart($("cSect"), groups, { ymax: 26, ticks: [0, 5, 10, 15, 20, 25], fmt: v => v.toFixed(0), yLabel: "km/h",
+    barOpacity: k => [0.55, 1, 0.8, 0.45][k],
+    key: "bars, left to right: top straight · turns · last straight · end flat" });
+}
+
+function fricChart() {
+  const groups = analysed().filter(r => r.mu_eff != null).map(r => ({ name: r.subject + (wet(r) ? " (wet)" : ""), c: pcol(r), fill: suit(r), bars: [["turns", r.mu_eff], ["last straight", r.mu_lower]] }));
+  if (DOC.cop) groups.push({ name: "the cop", c: css("--cop"), bars: [["whole slide", DOC.cop.mu]] });
+  barChart($("cFric"), groups, { ymax: 0.7, ticks: [0, 0.2, 0.4, 0.6], fmt: v => v.toFixed(2), yLabel: "friction μ",
+    barOpacity: k => k ? 0.55 : 1, hline: { y: DOC.stall_mu, label: "stall" },
+    key: "turns (dark) · last straight (light) · above the dashed line you slow down, below it you speed up" });
 }
 
 function chips() {
-  $("chips").innerHTML = DOC.runs.filter(r => r.include).map(r => `<button class="chip" data-id="${r.run_id}"><span class="key" style="background:${pcol(r)}"></span>${runLabel(r)}</button>`).join("");
+  $("chips").innerHTML = DOC.runs.filter(r => r.include).map(r => `<button class="chip" data-id="${r.run_id}"><span class="key" style="background:${pcol(r)}"></span>${nameOf(r)}</button>`).join("");
   $("chips").querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => select(+b.dataset.id)));
 }
 
@@ -412,24 +412,20 @@ function planView(svg, r) {
   const k = Math.min((W - 2 * pad) / (maxx - minx), (H - 2 * pad) / (maxz - minz));
   const X = x => pad + (x - minx) * k, Y = z => H - pad - (z - minz) * k;
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  let g = `<path d="${P.map((p, i) => (i ? "L" : "M") + X(p[0]).toFixed(1) + "," + Y(p[2]).toFixed(1)).join("")}" fill="none" stroke="${css("--panel-2")}" stroke-width="${Math.max(10, 0.66 * k)}" stroke-linecap="round" stroke-linejoin="round"/>`;
-  g += `<path d="${P.map((p, i) => (i ? "L" : "M") + X(p[0]).toFixed(1) + "," + Y(p[2]).toFixed(1)).join("")}" fill="none" stroke="${css("--axis")}" stroke-width="1"/>`;
+  const path = P.map((p, i) => (i ? "L" : "M") + X(p[0]).toFixed(1) + "," + Y(p[2]).toFixed(1)).join("");
+  let g = `<path d="${path}" fill="none" stroke="${css("--panel-2")}" stroke-width="${Math.max(10, 0.66 * k)}" stroke-linecap="round" stroke-linejoin="round"/>`;
   const at = s => { let lo = 0, hi = S.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; S[m] < s ? lo = m : hi = m; } const f = (s - S[lo]) / (S[hi] - S[lo] || 1); return [P[lo][0] + (P[hi][0] - P[lo][0]) * f, P[lo][2] + (P[hi][2] - P[lo][2]) * f]; };
-  if (r.model) {
-    const vmax = 2.2, ramp = ["#cde2fb", "#86b6ef", "#3987e5", "#1c5cab", "#104281"];
-    const col = v => ramp[Math.min(ramp.length - 1, Math.floor(v / vmax * ramp.length))];
-    for (let i = 0; i < r.model.s.length - 1; i += 2) {
-      const a = at(r.model.s[i]), b = at(r.model.s[Math.min(i + 2, r.model.s.length - 1)]);
-      g += `<line x1="${X(a[0])}" y1="${Y(a[1])}" x2="${X(b[0])}" y2="${Y(b[1])}" stroke="${col(r.model.v[i])}" stroke-width="6" stroke-linecap="round"><title>s ${r.model.s[i].toFixed(2)} m · ${r.model.v[i].toFixed(2)} m/s</title></line>`;
-    }
-    const e = at(r.model.s[r.model.s.length - 1]);
-    g += `<text x="${X(e[0])}" y="${Y(e[1]) - 10}" fill="${css("--text")}" font-size="11" text-anchor="middle">✕ stops, s=${r.model.s[r.model.s.length - 1].toFixed(1)} m</text>`;
-    g += ramp.map((c, i) => `<rect x="${W - 150 + i * 26}" y="${H - 18}" width="24" height="8" fill="${c}"/>`).join("") +
-      `<text x="${W - 150}" y="${H - 22}" fill="${css("--text-faint")}" font-size="9.5">speed 0 → ${vmax}+ m/s</text>`;
+  const vmax = 10, ramp = ["#cde2fb", "#86b6ef", "#3987e5", "#1c5cab", "#104281"];
+  const col = v => ramp[Math.min(ramp.length - 1, Math.floor(v / vmax * ramp.length))];
+  for (let i = 0; i < r.model.s.length - 1; i += 2) {
+    const a = at(r.model.s[i]), b = at(r.model.s[Math.min(i + 2, r.model.s.length - 1)]);
+    g += `<line x1="${X(a[0])}" y1="${Y(a[1])}" x2="${X(b[0])}" y2="${Y(b[1])}" stroke="${col(r.model.v[i] * KMH)}" stroke-width="7" stroke-linecap="round"><title>${(r.model.v[i] * KMH).toFixed(1)} km/h</title></line>`;
   }
+  g += ramp.map((c, i) => `<rect x="${W - 150 + i * 26}" y="${H - 18}" width="24" height="8" fill="${c}"/>`).join("") +
+    `<text x="${W - 150}" y="${H - 22}" fill="${css("--text-faint")}" font-size="9.5">slow → ${vmax}+ km/h</text>`;
   g += `<circle id="planDot" r="7" fill="${css("--accent")}" stroke="${css("--panel")}" stroke-width="2.5" visibility="hidden"/>`;
-  g += `<text x="${X(P[0][0]) + 8}" y="${Y(P[0][2]) + 4}" fill="${css("--text-dim")}" font-size="10.5">entry</text>`;
-  g += `<text x="${X(P[P.length - 1][0])}" y="${Y(P[P.length - 1][2]) + 18}" fill="${css("--text-dim")}" font-size="10.5" text-anchor="middle">exit</text>`;
+  g += `<text x="${X(P[0][0]) + 10}" y="${Y(P[0][2]) + 4}" fill="${css("--text-dim")}" font-size="11">start</text>`;
+  g += `<text x="${X(P[P.length - 1][0])}" y="${Y(P[P.length - 1][2]) + 20}" fill="${css("--text-dim")}" font-size="11" text-anchor="middle">end</text>`;
   svg.innerHTML = g;
   svg._pos = s => { const p = at(s); return [X(p[0]), Y(p[1])]; };
 }
@@ -437,95 +433,74 @@ function planView(svg, r) {
 function select(id) {
   SEL = DOC.runs.find(r => r.run_id === id);
   document.querySelectorAll(".chip").forEach(b => b.classList.toggle("active", +b.dataset.id === id));
-  document.querySelectorAll("#runsTable tbody tr").forEach(tr => tr.classList.toggle("sel", +tr.dataset.id === id));
-  const r = SEL, c = pcol(r);
-  const notes = [r.manifest_notes, ...(r.notes || [])].filter(Boolean);
+  const r = SEL, c = pcol(r), v = vidOf(r);
+  const tile = (tl, tv, tu, idv) => `<div class="tile"><div class="tl">${tl}</div><div class="tv"${idv ? ` id="${idv}"` : ""}>${tv}<span class="tu">${tu}</span></div></div>`;
   $("runView").innerHTML = `
-    <div class="runhead"><span class="big">${runLabel(r)}</span><span class="notes">“${r.name}” · ${fmt(r.duration_s, 1)} s recorded · stopped ${r.stop_reason}
-      ${r.start_epoch_ms > 0 ? " · " + new Date(r.start_epoch_ms).toLocaleString() : ""}</span>
+    <div class="runhead"><span class="big">${nameOf(r)}</span>
+      ${r.manifest_notes ? `<span class="notes">${r.manifest_notes}</span>` : ""}
       ${r.model ? `<a class="btn" href="./?replay=${r.run_id}">▶ Replay in 3D</a>` : ""}</div>
-    ${notes.length ? `<div class="warn">${notes.join("<br>")}</div>` : ""}
-    ${vidOf(r) ? `<div class="card vidcard">
-      <div class="vidwrap"><video id="vid" src="${vidOf(r).media}" controls playsinline preload="metadata"></video></div>
-      <div class="vidside">
-        <h3>Video, synced to the IMU</h3>
-        <p class="notes">The camera only sees the last ~4.2 m: tube mouth → open trough → exit flat. Play it, and the orange
-          line moves through every chart below on the same clock; click any chart to jump the video there.</p>
-        <div class="tiles" style="margin:8px 0">
-          <div class="tile"><div class="tl">IMU time</div><div class="tv" id="rdT">—</div></div>
-          <div class="tile"><div class="tl">Model: along the slide</div><div class="tv" id="rdS">—</div></div>
-          <div class="tile"><div class="tl">Model: speed</div><div class="tv" id="rdV">—</div></div>
-        </div>
-        <p class="notes">Synced on: ${vidOf(r).sync_event}. Offset: IMU time = video time + ${fmt(vidOf(r).offset, 2)} s.</p>
-        <div class="chips"><button class="chip" id="slow">½× speed</button><button class="chip" id="slower">¼× speed</button><button class="chip" id="normal">1×</button></div>
-      </div></div>` : ""}
-    <div class="tiles">
-      ${r.model ? `
-      <div class="tile"><div class="tl">Right turn</div><div class="tv">${fmt(r.v_right_mps)}<span class="tu">m/s</span></div><div class="tn">heading ${fmt(r.right_dpsi_deg, 0)}° in ${fmt(r.right_t90 - r.right_t10)} s (10–90 %)</div></div>
-      <div class="tile"><div class="tl">Left turn</div><div class="tv">${fmt(r.v_left_mps)}<span class="tu">m/s</span></div><div class="tn">heading +${fmt(r.left_dpsi_deg, 0)}°</div></div>
-      <div class="tile"><div class="tl">Friction turns / lower slide</div><div class="tv">${fmt(r.mu_eff, 2)} / ${fmt(r.mu_lower, 2)}</div><div class="tn">stall ${fmt(DOC.stall_mu, 3)} · turn fit rms ${fmt(r.fit_rms_s, 2)} s</div></div>
-      <div class="tile"><div class="tl">Top → at rest at the bottom</div><div class="tv">${fmt(r.model_time_on_slide_s, 1)}<span class="tu">s</span></div><div class="tn">push-off ${fmt(r.model_v_begin_mps)} m/s · bottom: ${r.exit_how}</div></div>
-      <div class="tile"><div class="tl">Roughness</div><div class="tv">${fmt(r.peak_g_ride, 1)}<span class="tu">g peak</span></div><div class="tn">${r.impacts_over_3g} knocks > 3 g</div></div>` :
-      `<div class="tile"><div class="tl">Peak</div><div class="tv">${fmt(r.peak_acc_g, 1)}<span class="tu">g</span></div><div class="tn">${fmt(r.peak_gyro_dps, 0)} deg/s — no turn pair, no slide landmarks</div></div>`}
+    ${r.model ? `<div class="tiles">
+      ${tile("Top → bottom", fmt(tBottom(r), 1), "s")}
+      ${tile("Top speed", fmt(vMax(r) * KMH, 0), "km/h")}
+      ${tile("In the turns", fmt(r.v_turns_mps * KMH, 0), "km/h")}
+      ${tile("Hardest knock", fmt(r.peak_g_ride ?? r.peak_acc_g, 1), "g")}
     </div>
+    ${v ? `<div class="card vidcard">
+      <div class="vidwrap"><video id="vid" src="${v.media}" controls playsinline preload="metadata"></video></div>
+      <div class="vidside"><h3>Bottom camera, synced to the logger</h3>
+        <div class="tiles" style="margin:8px 0">${tile("Now", "—", "", "rdV")}${tile("Distance down", "—", "", "rdS")}</div>
+        <div class="chips"><button class="chip" id="slow">½×</button><button class="chip" id="slower">¼×</button><button class="chip" id="normal">1×</button></div>
+        <p class="notes">The orange line on the charts follows the video. Click a chart to jump there.</p>
+      </div></div>` : ""}
     <div class="grid2">
-      <div class="card"><h3>Heading (gyro), + = left</h3><svg class="chart" id="cHead" height="220"></svg></div>
-      <div class="card"><h3>Speed</h3><div class="legend" id="legV"></div><svg class="chart" id="cV" height="200"></svg></div>
-      <div class="card"><h3>Rotation rate |ω|</h3><svg class="chart" id="cGyro" height="180"></svg></div>
-      <div class="card"><h3>Acceleration |a| (low-passed)</h3><svg class="chart" id="cAcc" height="180"></svg></div>
-      <div class="card"><h3>Sliding vibration (25–150 Hz rms, log)</h3><svg class="chart" id="cVib" height="180"></svg>
-        <p class="notes">Rubbing on the steel tube: ~0.01–0.3 g. Lying still at the bottom: under ~0.012 g.</p></div>
-      <div class="card"><h3>Reconstructed path (plan view)</h3><svg class="chart" id="cPlan" height="260"></svg></div>
-    </div>`;
-  const S = r.series, t = S.t;
-  let x0 = t[0], x1 = t[t.length - 1];
-  if (r.model) { x0 = Math.max(t[0], Math.min(r.t_start ?? r.right_t_begin, r.right_t_begin - 3) - 2); x1 = Math.min(t[t.length - 1], Math.max(r.t_exit ?? 0, (r.left_t_end ?? r.right_t_end) + 4) + 4); }
-  const vv = vidOf(r);
-  if (vv && vv.t) x1 = Math.min(t[t.length - 1], Math.max(x1, vv.offset + vv.t[vv.t.length - 1] + 0.3));
-  const bands = r.model ? [{ x0: r.right_t_begin, x1: r.right_t_end, color: css("--seg-right"), label: "right" },
-    { x0: r.t_exit - 0.06, x1: r.t_exit + 0.06, color: css("--text"), label: "bottom" }].concat(r.left_t_begin ? [{ x0: r.left_t_begin, x1: r.left_t_end, color: css("--seg-left"), label: "left" }] : []) : [];
-  const clip = (xs, ys) => { const i0 = xs.findIndex(v => v >= x0), i1 = xs.findIndex(v => v > x1); return [xs.slice(i0, i1 < 0 ? undefined : i1), ys.slice(i0, i1 < 0 ? undefined : i1)]; };
-  const ser = (name, ys, color, extra = {}) => { const [a, b] = clip(t, ys); return { name, color, x: a, y: b, ...extra }; };
-  const pts = r.marks ? r.marks.t.map((tt, k) => ({ x: tt, y: interpAt(t, S.psi, tt), color: css("--text"), name: `landmark s=${r.marks.s[k].toFixed(2)} m` })) : [];
-  lineChart($("cHead"), { series: [ser("heading °", S.psi, c, { width: 2 })], points: pts, bands, xLabel: "time in recording (s)", yLabel: "deg", xDomain: [x0, x1], yDomain: [Math.min(...clip(t, S.psi)[1]) - 10, Math.max(...clip(t, S.psi)[1]) + 10] });
-  lineChart($("cGyro"), { series: [ser("|ω| deg/s", S.gyro, css("--text-dim"), { width: 1.4 })], bands, xLabel: "time in recording (s)", yLabel: "deg/s", xDomain: [x0, x1] });
-  lineChart($("cAcc"), { series: [ser("|a| g", S.acc, css("--text-dim"), { width: 1.4 })], bands, xLabel: "time in recording (s)", yLabel: "g", xDomain: [x0, x1], hlines: [{ y: 1, label: "1 g" }] });
-  lineChart($("cVib"), { series: [ser("vibration g", S.vib, "#d55181", { width: 1.2 })], bands, xLabel: "time in recording (s)", yLabel: "g", xDomain: [x0, x1], logY: true, yDomain: [0.001, 1], hlines: [] });
-  if (r.model) {
-    const seg = (r.segments || []).map((sg, k) => ({ name: k ? "measured, left turn" : "measured, right turn", color: css("--text"), x: [sg[2], sg[3]], y: [sg[4], sg[4]], width: 4 }));
-    legend($("legV"), [{ name: "reconstructed speed", color: c, dash: !suit(r) }, { name: "measured over each turn", color: css("--text") }]);
-    lineChart($("cV"), { series: [{ name: "model m/s", color: c, x: r.model.t, y: r.model.v, dash: dashOf(r) }].concat(seg), bands, xLabel: "time in recording (s)", yLabel: "m/s", xDomain: [x0, x1], yDomain: [0, Math.max(2.6, ...r.model.v) * 1.1] });
-  } else {
-    $("cV").outerHTML = `<p class="notes">No turn pair in this recording, so there are no landmarks to measure speed against.</p>`;
-  }
+      <div class="card"><h3>Speed</h3><svg class="chart" id="cV" height="250"></svg></div>
+      <div class="card"><h3>Seen from above, coloured by speed</h3><svg class="chart" id="cPlan" height="250"></svg></div>
+      <div class="card"><h3>Which way the body points</h3><svg class="chart" id="cHead" height="220"></svg></div>
+      <div class="card"><h3>Bumps and knocks</h3><svg class="chart" id="cAcc" height="220"></svg></div>
+    </div>` : `<div class="warn">This recording never reached the turns, so there is nothing on the slide to time it against.</div>`}`;
+  if (!r.model) return;
+  const m = r.model, t0 = m.t[0], tt = m.t.map(t => t - t0), tEnd = tt[tt.length - 1];
+  const bands = [{ x0: r.right_t_begin - t0, x1: r.right_t_end - t0, color: css("--seg-right"), label: "right turn" }]
+    .concat(r.left_t_begin ? [{ x0: r.left_t_begin - t0, x1: r.left_t_end - t0, color: css("--seg-left"), label: "left" }] : []);
+  const xd = [-1, tEnd + 1.5], S = r.series;
+  const win = (ys) => { const xs = [], out = []; S.t.forEach((t, i) => { const x = t - t0; if (x >= xd[0] && x <= xd[1]) { xs.push(x); out.push(ys[i]); } }); return [xs, out]; };
+  const iMax = m.v.indexOf(Math.max(...m.v));
+  lineChart($("cV"), { series: [{ name: "km/h", color: c, x: tt, y: m.v.map(v => v * KMH), dash: dashOf(r), width: 2.5 }], bands,
+    xLabel: "seconds since the top of the slope", yLabel: "km/h", xDomain: xd, yDomain: [0, Math.max(12, vMax(r) * KMH * 1.2)], yFmt: v => v.toFixed(0),
+    notes: [{ x: tt[iMax], y: m.v[iMax] * KMH * 1.08, text: `top ${fmt(m.v[iMax] * KMH, 0)} km/h` }, { x: tEnd, y: 0.6, text: "end", anchor: "end" }] });
+  const [hx, hy] = win(S.psi), h0 = hy.length ? hy[0] : 0;
+  lineChart($("cHead"), { series: [{ name: "°", color: c, x: hx, y: hy.map(v => v - h0), width: 2 }], bands, xLabel: "seconds since the top of the slope",
+    yLabel: "turned (°)", xDomain: xd, yFmt: v => v.toFixed(0), yDomain: [Math.min(-150, ...hy.map(v => v - h0)) - 10, Math.max(60, ...hy.map(v => v - h0)) + 10],
+    notes: [{ x: (r.right_t_begin + r.right_t_end) / 2 - t0, y: -135, text: "turning right ↓" }].concat(r.left_t_begin ? [{ x: (r.left_t_begin + r.left_t_end) / 2 - t0, y: 40, text: "left ↑" }] : []) });
+  const [ax, ay] = win(S.acc);
+  lineChart($("cAcc"), { series: [{ name: "g", color: css("--text-dim"), x: ax, y: ay, width: 1.4 }], bands, xLabel: "seconds since the top of the slope",
+    yLabel: "g-force", xDomain: xd, yDomain: [0, Math.max(3, ...ay) * 1.1], yFmt: v => v.toFixed(0), hlines: [{ y: 1, label: "1 g = sitting still" }] });
   planView($("cPlan"), r);
-  wireVideo(r);
+  wireVideo(r, t0);
 }
 
 function vidOf(r) { return Object.values(DOC.videos || {}).find(v => v.run_id === r.run_id && v.media); }
 
-function wireVideo(r) {
+function wireVideo(r, t0) {
   const v = vidOf(r), el = $("vid");
-  if (!v || !el || !r.model) return;
-  const charts = ["cHead", "cV", "cGyro", "cAcc", "cVib"].map($).filter(Boolean);
+  if (!v || !el) return;
+  const charts = ["cV", "cHead", "cAcc"].map($).filter(Boolean), m = r.model;
   const update = () => {
-    const t = el.currentTime + v.offset;
-    charts.forEach(c => setCursor(c, t));
-    const m = r.model, inRide = t >= m.t[0] && t <= m.t[m.t.length - 1];
-    const sNow = inRide ? interpAt(m.t, m.s, t) : (t > m.t[m.t.length - 1] ? m.s[m.s.length - 1] : null);
-    const vNow = inRide ? interpAt(m.t, m.v, t) : (t > m.t[m.t.length - 1] ? m.v[m.v.length - 1] : null);
-    $("rdT").innerHTML = `${fmt(t, 2)}<span class="tu">s</span>`;
+    const t = el.currentTime + v.offset, x = t - t0;
+    charts.forEach(c => setCursor(c, x));
+    const last = m.t.length - 1, sNow = t < m.t[0] ? null : t > m.t[last] ? m.s[last] : interpAt(m.t, m.s, t);
+    const vNow = t < m.t[0] ? null : t > m.t[last] ? 0 : interpAt(m.t, m.v, t);
+    $("rdV").innerHTML = vNow == null ? "—" : `${fmt(vNow * KMH, 1)}<span class="tu">km/h</span>`;
     $("rdS").innerHTML = sNow == null ? "—" : `${fmt(sNow, 1)}<span class="tu">m</span>`;
-    $("rdV").innerHTML = vNow == null ? "—" : `${fmt(vNow, 2)}<span class="tu">m/s</span>`;
     const dot = $("planDot"), plan = $("cPlan");
-    if (dot && plan._pos && sNow != null) { const [x, y] = plan._pos(sNow); dot.setAttribute("cx", x); dot.setAttribute("cy", y); dot.setAttribute("visibility", "visible"); }
+    if (dot && plan._pos && sNow != null) { const [px, py] = plan._pos(sNow); dot.setAttribute("cx", px); dot.setAttribute("cy", py); dot.setAttribute("visibility", "visible"); }
   };
   let raf = 0;
   const loop = () => { update(); if (!el.paused && !el.ended) raf = requestAnimationFrame(loop); };
   el.addEventListener("play", () => { cancelAnimationFrame(raf); loop(); });
   ["seeked", "timeupdate", "loadedmetadata"].forEach(ev => el.addEventListener(ev, update));
   charts.forEach(c => c.addEventListener("chartclick", e => {
-    const tv = e.detail - v.offset;
+    const tv = e.detail + t0 - v.offset;
     if (tv >= 0 && (!el.duration || tv <= el.duration)) el.currentTime = tv;
   }));
   $("slow").onclick = () => { el.playbackRate = 0.5; };
@@ -535,30 +510,22 @@ function wireVideo(r) {
 
 function gallery() {
   const figs = [
-    ["01_track_geometry.png", "Slide geometry: measured segment lengths, 30° slope (reported), estimated 120°/45° turns"],
-    ["05_speed_along_the_slide.png", "Speed along the slide: riders, the cop, and the model with our measured friction"],
-    ["06_race_to_the_bottom.png", "The race down, and time from the top to the bottom of the slope"],
-    ["15_the_cop_vs_our_riders.png", "The cop vs. our riders: measured speed and the friction it implies"],
-    ["08_friction.png", "What slows them down: fitted friction vs. the stall line, and the cop"],
-    ["14_video_vs_imu.png", "Video and IMU on one clock: the camera sees the rider where the model puts them"],
-    ["09_suit_vs_normal.png", "Cop uniform vs. normal clothes, per rider"],
-    ["07_trajectories_plan.png", "Where each rider was fast or slow, seen from above"],
-    ["03_heading_turn_pairs.png", "The slide's fingerprint in the gyro heading"],
-    ["04_turn_sweeps.png", "Turn angles seen by the gyro vs. the slide model"],
-    ["10_slope_angle_sensitivity.png", "What depends on the unsurveyed slope angle"],
-    ["11_centripetal_check.png", "Cross-check: sideways acceleration vs. timing"],
-    ["12_impacts_vibration.png", "How rough was the ride"],
-    ["13_runs_without_turn_signature.png", "Recordings without a turn pair (#15, #16)"],
-  ].concat(DOC.runs.filter(r => r.include && r.run_id !== 15).map(r => [`02_run_${String(r.run_id).padStart(2, "0")}_overview.png`, `Run #${r.run_id} overview — ${r.name}`]));
+    ["05_speed_along_the_slide.png", "Speed along the slide"],
+    ["06_race_to_the_bottom.png", "The race to the bottom"],
+    ["07_trajectories_plan.png", "Where each rider was fast or slow"],
+    ["08_friction.png", "Friction per stretch of slide"],
+    ["15_the_cop_vs_our_riders.png", "The cop vs. our riders"],
+    ["01_track_geometry.png", "The slide"],
+  ];
   $("gallery").innerHTML = figs.map(([f, cap]) => `<a href="results/${f}" target="_blank" rel="noopener"><figure><img loading="lazy" src="results/${f}" alt="${cap}"><figcaption>${cap}</figcaption></figure></a>`).join("");
 }
 
-function renderAll() { tiles(); compareCharts(); if (SEL) select(SEL.run_id); }
+function renderAll() { tiles(); finish(); raceChart(); speedChart(); sectChart(); fricChart(); if (SEL) select(SEL.run_id); }
 
 fetch("data/runs.json").then(r => r.json()).then(doc => {
   DOC = doc;
-  $("gen").textContent = `Data generated ${doc.generated} by analysis/analyze.py · track: ${doc.track.length_m} m, drop ${doc.track.drop_m} m, decline ${doc.track.theta_deg}° (est.)`;
-  tiles(); compareCharts(); table(); chips(); gallery();
+  $("gen").textContent = `Data generated ${doc.generated} · slide ${doc.track.length_m} m long, ${doc.track.drop_m} m drop, ${Math.round(doc.track.theta_deg)}° slope`;
+  renderAll(); chips(); gallery();
   const q = +new URLSearchParams(location.search).get("run");
   select(q && DOC.runs.some(r => r.run_id === q) ? q : (DOC.runs.find(r => r.group === "full suit") || DOC.runs[0]).run_id);
   let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(renderAll, 150); });
