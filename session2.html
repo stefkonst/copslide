@@ -107,11 +107,27 @@
   <nav class="tabs"><a class="tab" href="./">Simulation</a><a class="tab" href="data.html">Data</a><a class="tab active" href="session2.html">Session 2</a></nav>
 </header>
 <main>
-  <div class="warn"><b>Work in progress (update 1).</b> All 22 logger runs and 21 chest-GoPro clips are synced; turn
-    landmarks are reviewed run by run. Still to come: the GoPro as a second timing of every turn, the landing videos
-    (lower slide), statistics and the final write-up.</div>
+  <div class="warn"><b>Work in progress (update 2).</b> All runs synced and reviewed; statistics done. Still to come: the
+    landing videos (where on the lower slide people stopped) and the final write-up.</div>
   <p class="lede">Nineteen riders went down once each in normal clothes, three of them again in a cop suit. A waist
-    logger timed the turns; a chest GoPro confirmed the sync and showed when each rider came to rest.</p>
+    logger and a chest GoPro each timed the slide's turns.</p>
+  <div class="card">
+    <h3>What we found so far</h3>
+    <ol>
+      <li><b>Everyone was slow.</b> Through the turns, riders in normal clothes did 1–5 km/h (median about 3 km/h):
+        walking pace. The viral cop was going about 20 km/h.</li>
+      <li><b>The measurement is solid.</b> The waist logger and the chest GoPro timed each turn independently and agree
+        within about 7 % (median). The differences between riders (about ±50 %) are real, not noise.</li>
+      <li><b>Everyone's friction sits right at the "stall" point</b> (μ 0.54–0.62, stall 0.58), where friction and gravity
+        cancel. On that knife-edge, a small difference in clothing, posture or push-off turns into a big difference in speed.
+        The cop had about half our friction.</li>
+      <li><b>The cop suit made no consistent difference.</b> P04 was faster in it, P05 slower, P06 the same. One rider's
+        runs can differ by ±40 %, so a suit effect smaller than that can't be seen with one run each.</li>
+      <li><b>Denim was slowest:</b> riders in jeans did about 2.3 km/h through the turns, against about 4 km/h in other
+        fabrics (7 riders in denim; suggestive, not conclusive).</li>
+      <li><b>Riders knew how fast they were:</b> their own speed ratings match the measurements closely.</li>
+    </ol>
+  </div>
 
   <div class="tiles" id="tiles"><div class="loading">loading data/runs.json…</div></div>
   <div class="card">
@@ -147,8 +163,8 @@ fetch("data/runs.json").then(r => r.json()).then(doc => {
     ["notes", r => (r.notes || []).filter(n => !/lower slide from|turn window|never came to rest|no quiet moment|friction could not|left-turn landmarks missing/.test(n)).join(" · ")]];
   $("t").innerHTML = `<thead><tr>${cols.map(c => `<th class="l">${c[0]}</th>`).join("")}</tr></thead><tbody>` +
     R.sort((a, b) => a.run_id - b.run_id).map(r => `<tr style="${r.quality === "C" ? "opacity:.5" : ""}">${cols.map(c => `<td class="l">${c[1](r)}</td>`).join("")}</tr>`).join("") + "</tbody>";
-  const figs = [["s2_01_turn_speed_by_rider.png", "Speed through the turns, every rider"], ["s2_02_suit_pairs.png", "Cop suit vs. normal clothes, same rider"],
-    ["s2_03_right_turn_signatures.png", "The right turn, as each rider's logger felt it"]]
+  const figs = [["s2_01_turn_speed_by_rider.png", "Speed through the turns, every rider"], ["s2_06_friction_lever.png", "Why riders differ so much"], ["s2_02_suit_pairs.png", "Cop suit vs. normal clothes, same rider"],
+    ["s2_03_right_turn_signatures.png", "The right turn, as each rider's logger felt it"], ["s2_05_two_sensors_agree.png", "Two sensors, same turn: they agree"], ["s2_07_fabric_and_feel.png", "Trouser fabric, and how fast it felt"]]
     .concat((window.EXTRA_FIGS || []));
   $("gallery").innerHTML = figs.map(([f, cap]) => `<a href="results/${f}" target="_blank" rel="noopener"><figure><img loading="lazy" src="results/${f}" alt="${cap}"><figcaption>${cap}</figcaption></figure></a>`).join("");
   $("gen").textContent = `Data generated ${doc.generated}`;
