@@ -107,12 +107,12 @@
   <nav class="tabs"><a class="tab" href="./">Simulation</a><a class="tab" href="data.html">Data</a><a class="tab active" href="session2.html">Session 2</a></nav>
 </header>
 <main>
-  <div class="warn"><b>Update 1 of 6 (landing videos).</b> All 22 landing clips are in. Where riders stopped:
-    <b>9 shot off the end</b> (P04 ×2, P05 ×2, P06 normal clothes, P12, P13 ×2, P14), <b>7 stopped on the exit flat</b>,
-    <b>6 stopped before reaching it</b>, on the lower straight (P09, P11, P15, P16, P17, Angel). So "time until at rest"
-    mixes riders who stalled with riders who flew off; the next updates compare speed at the bottom of the slope and
-    the exit speed instead. The fastest riders left the end at about 5 m/s, close to the cop. Coming next: exit speeds,
-    group comparisons (sex, age, fabric…), perceived vs. measured speed, and a single, simpler data page.</div>
+  <div class="warn"><b>Update 2 of 6 (who was fast, and why).</b> New figures at the bottom of this page (s2g_…):
+    <b>how fast riders were in the turns decides where they end up</b> (2.0 km/h → stopped before the flat, 3.3 → stopped on
+    the flat, 4.2 → shot off the end; p = 0.006). Group comparisons: <b>jeans were slower</b> (suggestive, p = 0.02);
+    sex, age, drinks, weight and height made no clear difference. <b>The cop's turn speed can only be bounded</b>: 6–17 km/h
+    (the video only shows his last 4 m); on that same last stretch our fastest riders did 9–18 km/h vs his ~22.
+    Riders felt about 30 points faster than they were. Next: single, simpler data page.</div>
   <p class="lede">Nineteen riders went down once each in normal clothes, three of them again in a cop suit. A waist
     logger and a chest GoPro each timed the slide's turns.</p>
   <div class="card">
@@ -369,7 +369,9 @@ function table() {
     R.map(r => `<tr style="${r.quality === "C" ? "opacity:.5" : ""}">${cols.map(c => `<td class="l">${c[1](r)}</td>`).join("")}</tr>`).join("") + "</tbody>";
 }
 function gallery() {
-  const figs = [["s2_01_turn_speed_by_rider.png", "Speed through the turns, every rider"], ["s2_06_friction_lever.png", "Why riders differ so much"],
+  const figs = [["s2g_01_outcome.png", "Where riders ended up, and their speed in the turns"], ["s2g_02_groups.png", "Who was faster? Group averages"],
+    ["s2g_03_cop_same_stretch.png", "The cop: turn speed range, and the same stretch compared"], ["s2g_04_felt_vs_real.png", "Felt vs real speed"],
+    ["s2_01_turn_speed_by_rider.png", "Speed through the turns, every rider"], ["s2_06_friction_lever.png", "Why riders differ so much"],
     ["s2_02_suit_pairs.png", "Cop suit vs. normal clothes, same rider"], ["s2_03_right_turn_signatures.png", "The right turn, as each rider's logger felt it"],
     ["s2_05_two_sensors_agree.png", "Two sensors, same turn: they agree"], ["s2_07_fabric_and_feel.png", "Trouser fabric, and how fast it felt"]];
   $("gallery").innerHTML = figs.map(([f, cap]) => `<a href="results/${f}" target="_blank" rel="noopener"><figure><img loading="lazy" src="results/${f}" alt="${cap}"><figcaption>${cap}</figcaption></figure></a>`).join("");
