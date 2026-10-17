@@ -104,7 +104,7 @@
 <header>
   <h1>ANGELCON</h1>
   <span class="sub">how did the cop go so fast by Angel and Stef</span>
-  <nav class="tabs"><a class="tab" href="./">Simulation</a><a class="tab active" href="data.html">Data</a></nav>
+  <nav class="tabs"><a class="tab" href="./">Simulation</a><a class="tab active" href="data.html">Data</a><a class="tab" href="session2.html">Session 2</a></nav>
 </header>
 
 <main>
@@ -285,7 +285,8 @@ function legend(el, items) {
 const KMH = 3.6;
 const wet = r => /wet jeans/i.test(r.manifest_notes || "");
 const nameOf = r => `${r.subject} — ${wet(r) ? "wet jeans" : r.clothing}`;
-const analysed = () => DOC.runs.filter(r => r.model && r.include);
+const S1 = r => (r.session || 1) === 1;  // this page is session 1; session 2 has its own page
+const analysed = () => DOC.runs.filter(r => r.model && r.include && S1(r));
 const sBot = () => DOC.track.landmarks_m.bottom_of_decline;
 const tBottom = r => { const t0 = r.model.t[0]; return interpAt(r.model.s, r.model.t.map(t => t - t0), sBot()); };
 const vMax = r => Math.max(...r.model.v);
@@ -401,7 +402,7 @@ function fricChart() {
 }
 
 function chips() {
-  $("chips").innerHTML = DOC.runs.filter(r => r.include).map(r => `<button class="chip" data-id="${r.run_id}"><span class="key" style="background:${pcol(r)}"></span>${nameOf(r)}</button>`).join("");
+  $("chips").innerHTML = DOC.runs.filter(r => r.include && S1(r)).map(r => `<button class="chip" data-id="${r.run_id}"><span class="key" style="background:${pcol(r)}"></span>${nameOf(r)}</button>`).join("");
   $("chips").querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => select(+b.dataset.id)));
 }
 
