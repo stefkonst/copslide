@@ -137,7 +137,7 @@
     <div class="card">
       <h3>Try it</h3>
       <div class="slider"><label>Speed coming out of the tube <b id="vV"></b></label><input id="sV" type="range" min="2" max="30" step="0.5"></div>
-      <div class="slider"><label>Body rotation (0° = flat on back or belly, 90° = on the side) <b id="vR"></b></label><input id="sR" type="range" min="0" max="90" step="5"></div>
+      <div class="slider"><label>Body rotation (0° = flat on back or belly, 90° = on the side) <b id="vR"></b></label><input id="sR" type="range" min="0" max="90" step="1"></div>
       <div class="slider"><label>Friction of the clothes on the steel <b id="vM"></b></label><input id="sM" type="range" min="0.05" max="0.6" step="0.01"></div>
       <p class="notes">Start from a rider:</p>
       <div class="chips" id="presets"></div>
@@ -161,7 +161,7 @@ const $ = id => document.getElementById(id);
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const fmt = (v, d = 1) => (v == null || Number.isNaN(v)) ? "—" : (+v).toFixed(d);
 const tip = $("tip");
-const V = "20261018083956";
+const V = "20261018085422";
 /* ------------------------------------------------------------------ chart */
 function niceTicks(lo, hi, n = 5) {
   const span = hi - lo || 1, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
@@ -382,13 +382,45 @@ function initThree() {
   const armR = cap(0.62, 0.05, 0x1d2533, -0.25); armR.position.z = -0.25;
   [torso, vest, head, legL, legR, armL, armR].forEach(m => body.add(m));
   scene.add(body); three.body = body;
+  body.rotation.order = "ZYX";   // roll about the body's own long axis first, then pitch with the slide
+  /* Contact solve in the trough's cross-section (body frame: y = out of the back/belly, z = sideways).
+     Every body part is a circle of radius r at (z, y); after rolling by r the body settles at the
+     lowest height where all parts stay inside the trough circle (radius R_T, centre R_T above the
+     bottom). Arms fold onto the chest as the body rolls so no part passes through another. */
+  const armPose = rr => { const c = Math.abs(Math.cos(rr)), s = Math.abs(Math.sin(rr)); return { y: 0.16 * s, z: 0.25 * c + 0.06 * s }; };
+  const parts = rr => {
+    const a = armPose(rr), P = [];
+    for (const zz of [-W_FLAT / 2, W_FLAT / 2]) for (const yy of [-0.11, 0.11]) P.push([zz, yy, 0.0]);   // torso corners
+    for (const zz of [-0.1, 0, 0.1]) for (const yy of [-0.11, 0.11]) P.push([zz, yy, 0.0]);
+    P.push([0, 0, 0.11]);                                     // head
+    P.push([0.09, 0, 0.075], [-0.09, 0, 0.075]);              // legs
+    P.push([a.z, a.y, 0.05], [-a.z, a.y, 0.05]);              // arms
+    const c = Math.cos(rr), s = Math.sin(rr);
+    return P.map(([z, y, r]) => [z * c - y * s, z * s + y * c, r]);   // roll
+  };
+  const settle = rr => {
+    const P = parts(rr); let best = null;
+    for (let z0 = -0.25; z0 <= 0.25001; z0 += 0.005) {
+      let y0 = -1, ok = true;
+      for (const [z, y, r] of P) {
+        const dz = z0 + z, lim = R_T - r;
+        if (Math.abs(dz) > lim) { ok = false; break; }
+        y0 = Math.max(y0, R_T - y - Math.sqrt(lim * lim - dz * dz));
+      }
+      if (ok && (!best || y0 < best[1] - 1e-9)) best = [z0, y0];
+    }
+    return best || [0, 0.2];
+  };
+  three.settle = settle;
   three.place = (s, y = null, rollDeg = 0) => {
-    // CoM at s, resting on the bottom; feet ahead (+x is down the slide)
+    // CoM at s, resting on the steel; feet ahead (+x is down the slide)
+    const rr = rollDeg * Math.PI / 180, [z0, y0] = settle(rr), a = armPose(rr);
+    armL.position.set(-0.25, a.y, a.z); armR.position.set(-0.25, a.y, -a.z);
     const c = pos(Math.min(s, S_LIP)), th = pitch(Math.min(s, S_LIP)), n = new THREE.Vector3(Math.sin(th), Math.cos(th), 0);
-    const p = c.clone().add(n.multiplyScalar(0.13));
+    const p = c.clone().add(n.multiplyScalar(y0)).add(new THREE.Vector3(0, 0, z0));
     if (y !== null) { p.x += (s - S_LIP); p.y = y; }
     body.position.copy(p);
-    body.rotation.set(rollDeg * Math.PI / 180, 0, -th);
+    body.rotation.set(rr, 0, -th);
   };
   const tgt = pos(10.6).add(new THREE.Vector3(0, 0.25, 0));
   cam.position.copy(tgt.clone().add(new THREE.Vector3(-0.6, 1.9, 2.9))); cam.lookAt(tgt);
@@ -505,6 +537,9 @@ fetch("data.json?v=" + V).then(r => r.json()).then(d => { D = d; }).catch(() => 
   $("play").addEventListener("click", () => update(true));
   try { initThree(); } catch (e) { $("view").innerHTML = `<p class="notes">3-D view unavailable (${e.message}).</p>`; }
   preset(names.includes("P12") ? "P12" : (names[0] || "cop"));
+  const q = new URLSearchParams(location.search);
+  if (q.get("roll") !== null) { anim = null; $("sR").value = q.get("roll"); update(false); }
+  if (q.get("close") !== null && three) { const t2 = three.pos(10.2).add(new THREE.Vector3(0, 0.3, 0)); three.cam.position.copy(t2.clone().add(new THREE.Vector3(0.9, 0.5, 0.9))); three.cam.lookAt(t2); three.place(10.2, null, +q.get("roll") || 0); }
   let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => update(false), 150); });
 });
 
