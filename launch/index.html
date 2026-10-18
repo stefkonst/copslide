@@ -121,15 +121,17 @@
 </header>
 <main>
   <ol class="findings">
-    <li><b>On the last straight, our fastest riders were already as slippery as clothes on steel get</b> (friction ≈ 0.10).
-      Posture can't add much: rolling onto the side or moulding into the trough saves under 2 %.</li>
-    <li><b>They were still slower than the cop:</b> 0.81–0.84 s from the tube mouth to the lip vs his 0.70 s, because
-      they came out of the tube at 13–14 km/h and he needed at least ~18 km/h.</li>
-    <li><b>The difference is made in the turns.</b> To come out of the tube at 18 km/h you have to leave the turns at
-      about 12 km/h; our riders left them at 4–6 km/h.</li>
-    <li><b>A "wannabe cop" (internet clip, full rain suit, same face-down twisted posture) did 0.75 s</b>: a slick suit
-      and that posture get you close to the cop.</li>
+    <li><b>Our fastest riders came out of the tube at 11–13 km/h; the cop at 16–22 km/h.</b> Over the same last 3.95 m
+      (tube mouth → lip) they took 0.87–1.12 s, he took 0.70 s.</li>
+    <li><b>On the last straight they were reasonably slippery</b> (friction 0.18–0.32, well below the 0.58 stall line) — the
+      cop may have been slipperier (anything from 0.10 to 0.40 fits his clip), but that alone can't close the gap.</li>
+    <li><b>The gap is made in the turns.</b> To come out of the tube as fast as the cop, P12 would have needed to leave the
+      turns at ~16 km/h instead of ~4.</li>
+    <li><b>Posture on the last straight is worth ~5 %</b> (rolling onto the side or moulding into the trough: 1.00 → 0.95 s).
+      A "wannabe cop" in a full rain suit, lying like the cop, did 0.75 s.</li>
   </ol>
+  <p class="notes">Every video time is shown frame by frame in <code>results/gate_checks</code>. Earlier versions used a marker
+    that perspective had put ~1 m too far down the trough and over-stated our riders' speeds by ~30 %.</p>
 
   <div class="lab">
     <div class="card"><div id="view"></div>
@@ -150,7 +152,7 @@
       <p class="notes">Dots: our riders who shot off (fitted from the landing video + logger; lines = ±1σ for the selected one). Click a dot to load it.</p></div>
   </div>
   <div class="gallery" id="figs"></div>
-  <details class="more"><summary>Physics and assumptions</summary><ul><li>(all used below; the web page lists the same)</li><li>slide 30.0 deg slope (measured), lower straight ends at s = 11.05 m, the slope eases to the flat over 0.40 m (11.05-11.45), flat to the lip at 12.75 m, lip 0.55 m above the ground. Trough = circular arc, radius 0.375 m (0.75 m opening, measured). Covered tube 7.05-8.55 m.</li><li>body a rigid body sliding along the trough axis, treated as a point at its centre of mass (CoM) for the equation of motion. Feet-first riders: CoM 0.90 m behind the feet; the cop's vest (chest) is taken as his CoM (+-0.3 m, affects only where the slope->flat bend is felt). Mass cancels out except in air drag (75 kg used).</li><li>contact the body rests on the trough wall at its two outer edges (rigid shoulders/hips). For a contact width w in a trough of radius R the wall pushes at angle phi from straight down, sin(phi) = w / 2R, so the total pressing force is the weight component / cos(phi) ("wedging"). Contact width: lying flat (back or belly) 0.42 m (shoulders), on the side 0.24 m (body depth), in between w = 0.42|cos r| + 0.24|sin r|. A soft body that moulds into the curve wedges less: the rigid-edge value is an upper bound, 1.0 the lower bound.</li><li>friction mu = fabric on steel, constant along the stretch and with speed (Coulomb). mu_eff = mu * wedge factor is what the videos measure.</li><li>air drag 1/2 rho Cd A v^2, rho = 1.2 kg/m3, Cd*A = 0.12 m2 lying feet first, 0.40 m2 sitting up. Below 1 % of gravity at these speeds.</li><li>bend the slope->flat bend presses the body down by v^2 * curvature (curvature = 30 deg / 0.40 m): extra friction while turning flat.</li><li>flight leaves the lip horizontally; CoM 0.67 m above the ground; flight distance = v_exit * sqrt(2 h / g).</li><li>data riders: leading shoe at 9.0 m, 11.45 m and the lip, read frame by frame at 30 fps (+-0.047 s per interval), plus the logger's speed leaving the turns (+-20 %); the two are fitted jointly as one ride. Cop: torso out of the tube mouth and over the lip, effectively 15 fps (63 of 168 frames are duplicates): 0.70 +- 0.067 s. "Wannabe cop" internet clip (rain suit, same posture): 0.75 +- 0.07 s, read the same way.</li><li>limits friction of clothes on steel is at least ~0.10, so mu_eff >= 0.10 is imposed. Without it the fastest riders' fits drift to 0, i.e. the logger reads their speed leaving the turns ~10-15 % low; with the floor, the fit raises that speed instead (within its +-20 %).</li></ul></details>
+  <details class="more"><summary>Physics and assumptions</summary><ul><li>(all used below; the web page lists the same)</li><li>slide 30.0 deg slope (measured), lower straight ends at s = 11.05 m, the slope eases to the flat over 0.40 m (11.05-11.45), flat to the lip at 12.75 m, lip 0.55 m above the ground. Trough = circular arc, radius 0.375 m (0.75 m opening, measured). Covered tube 7.05-8.80 m; the open trough length (2.25 m, 2.0-2.5) is fitted from the riders' videos (trough_length.py).</li><li>body a rigid body sliding along the trough axis, treated as a point at its centre of mass (CoM) for the equation of motion. Feet-first riders: CoM 0.90 m behind the feet; the cop's vest (chest) is taken as his CoM (+-0.3 m, affects only where the slope->flat bend is felt). Mass cancels out except in air drag (75 kg used).</li><li>contact the body rests on the trough wall at its two outer edges (rigid shoulders/hips). For a contact width w in a trough of radius R the wall pushes at angle phi from straight down, sin(phi) = w / 2R, so the total pressing force is the weight component / cos(phi) ("wedging"). Contact width: lying flat (back or belly) 0.42 m (shoulders), on the side 0.24 m (body depth), in between w = 0.42|cos r| + 0.24|sin r|. A soft body that moulds into the curve wedges less: the rigid-edge value is an upper bound, 1.0 the lower bound.</li><li>friction mu = fabric on steel, constant along the stretch and with speed (Coulomb). mu_eff = mu * wedge factor is what the videos measure.</li><li>air drag 1/2 rho Cd A v^2, rho = 1.2 kg/m3, Cd*A = 0.12 m2 lying feet first, 0.40 m2 sitting up. Below 1 % of gravity at these speeds.</li><li>bend the slope->flat bend presses the body down by v^2 * curvature (curvature = 30 deg / 0.40 m): extra friction while turning flat.</li><li>flight leaves the lip horizontally; CoM 0.67 m above the ground; flight distance = v_exit * sqrt(2 h / g).</li><li>data riders: leading shoe at the tube mouth, the slope->flat bend and the lip (physical features only), read frame by frame at 30 fps (+-0.035 s, mouth up to +-0.1 s; results/gate_checks), plus the logger's speed leaving the turns (+-20 %); fitted jointly as one ride. Cop: torso out of the tube mouth and over the lip, effectively 15 fps (63 of 168 frames are duplicates): 0.70 +- 0.067 s. "Wannabe cop" internet clip (rain suit, same posture): 0.75 +- 0.07 s, read the same way.</li><li>limits mu_eff >= 0.10 (clothes on steel). The fits want riders leaving the turns ~30-50 % faster than the logger reads: the logger's turn-exit speed is likely low (it is a model value at the end of the turns).</li></ul></details>
   <p class="notes" id="gen"></p>
 </main>
 <div class="tip" id="tip"></div>
@@ -161,7 +163,7 @@ const $ = id => document.getElementById(id);
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const fmt = (v, d = 1) => (v == null || Number.isNaN(v)) ? "—" : (+v).toFixed(d);
 const tip = $("tip");
-const V = "20261018085422";
+const V = "20261018095255";
 /* ------------------------------------------------------------------ chart */
 function niceTicks(lo, hi, n = 5) {
   const span = hi - lo || 1, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
@@ -279,7 +281,7 @@ function legend(el, items) {
 
 /* The last straight: tube mouth -> trough -> flat -> lip -> flight.
    Same physics as analysis/laststraight.py (see the assumptions on the page). */
-const G = 9.81, TH = 30 * Math.PI / 180, S_MOUTH = 8.55, S_B0 = 11.05, S_B1 = 11.45, S_LIP = 12.75;
+const G = 9.81, TH = 30 * Math.PI / 180, S_MOUTH = 8.80, S_B0 = 11.05, S_B1 = 11.45, S_LIP = 12.75;
 const R_T = 0.375, LIP_H = 0.55, COM_H = 0.12, W_FLAT = 0.42, W_SIDE = 0.24, MASS = 75, RHO = 1.2, CDA = 0.12;
 const KAP = TH / (S_B1 - S_B0), KMH = 3.6, COP_T = 0.70, COP_DT = 0.067;
 const COPC = "#c98500", RIDC = "#3a78c2", SIMC = "#e0453a";
