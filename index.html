@@ -134,7 +134,7 @@
 <header>
   <h1>ANGELCON</h1>
   <span class="sub">how did the cop go so fast by Angel and Stef</span>
-  <nav class="tabs"><a class="tab active" href="./">Simulation</a><a class="tab" href="data.html">Data</a><a class="tab" href="launch/">Launch</a></nav>
+  <nav class="tabs"><a class="tab active" href="./">Simulation</a><a class="tab" href="launch/">Launch</a><a class="tab" href="results.html">Results</a><a class="tab" href="data.html">Data</a></nav>
   <div class="status"><span class="dot" id="runDot"></span><span id="runLabel">READY</span></div>
 </header>
 
@@ -167,51 +167,36 @@
 
   <aside>
     <section>
-      <div class="section-label">Rider setup</div>
+      <div class="section-label">Scenario</div>
       <div class="field">
-        <label for="posSel">Starting position</label>
+        <label for="scenSel">Start from</label>
+        <select id="scenSel"></select>
+        <div class="note" id="scenNote">loading the measured scenarios…</div>
+      </div>
+      <div class="field">
+        <label for="pushRange">Push-off speed at the top — <b id="pushVal">5</b>&nbsp;km/h</label>
+        <input type="range" id="pushRange" min="0" max="15" value="5" step="0.5">
+      </div>
+      <div class="field">
+        <label for="muTRange">Friction on the upper slope and in the turns — <b id="muTVal">0.58</b></label>
+        <input type="range" id="muTRange" min="0.10" max="0.70" value="0.58" step="0.01">
+        <div class="note">Above <b>0.58</b> (= tan 30°) friction beats gravity and you slow down.</div>
+      </div>
+      <div class="field">
+        <label for="muLRange">Friction on the lower straight — <b id="muLVal">0.40</b></label>
+        <input type="range" id="muLRange" min="0.05" max="0.70" value="0.40" step="0.01">
+      </div>
+      <div class="field">
+        <label for="posSel">Body position (3-D view only)</label>
         <select id="posSel">
           <option value="supine_feet_first" selected>Lying on back, legs forward</option>
-          <option value="prone_feet_first">Lying on belly, legs forward</option>
+          <option value="prone_feet_first">Lying on belly, legs forward (like the cop)</option>
           <option value="prone_head_first">Lying on belly, head first (not recommended in practice)</option>
         </select>
       </div>
       <div class="field">
-        <label for="clothSel">Clothing</label>
-        <select id="clothSel">
-          <optgroup label="Cop clothes">
-            <option value="measured_suit" selected>Cop uniform — our runs (measured)</option>
-            <option value="cop_video">Cop uniform — the viral cop's run (fitted to his video)</option>
-          </optgroup>
-          <optgroup label="Normal clothes">
-            <option value="measured_normal">Normal clothes — our run (measured)</option>
-          </optgroup>
-        </select>
-      </div>
-      <div class="field">
-        <label for="pushRange">Push-off speed — <b id="pushVal">1.8</b>&nbsp;m/s</label>
-        <input type="range" id="pushRange" min="0" max="3" value="1.8" step="0.1">
-        <div class="note">Speed at the top of the slope. The measured riders all sit near the
-          stall point of the 30° slope (μ ≈ tan 30° = 0.58), so they only get going with a push —
-          defaults to their measured average.</div>
-      </div>
-      <div class="field">
-        <label for="replaySel">Replay a recorded run</label>
+        <label for="replaySel">…or replay a recorded run</label>
         <select id="replaySel"><option value="">— none (physics simulation) —</option></select>
-        <div class="note">Rider follows the speed reconstructed from the waist IMU — see the Data tab.</div>
-      </div>
-      <div class="field">
-        <label for="massRange">Rider mass — <b id="massVal">70</b>&nbsp;kg</label>
-        <input type="range" id="massRange" min="20" max="100" value="70" step="1">
-      </div>
-      <div class="field">
-        <label>Track condition</label>
-        <div class="seg">
-          <button class="toggle active" data-track="dry">Dry</button>
-          <button class="toggle" data-track="humid">Humid</button>
-          <button class="toggle" data-track="wet">Wet</button>
-        </div>
-        <div class="note" id="muNote">μ ≈ — · illustrative, not measured</div>
       </div>
     </section>
 
@@ -225,17 +210,10 @@
       </div>
 
       <div class="chart-wrap">
-        <div class="chart-title"><span>Speed vs. distance</span><span id="peakSpeedLbl">peak —</span></div>
-        <svg class="chart" id="chartSpeed" viewBox="0 0 300 90"></svg>
+        <div class="chart-title"><span>Speed along the slide (km/h)</span><span id="peakSpeedLbl">peak —</span></div>
+        <svg class="chart" id="chartSpeed" viewBox="0 0 300 150"></svg>
       </div>
-      <div class="chart-wrap">
-        <div class="chart-title"><span>Elevation profile</span><span id="dropLbl">drop —</span></div>
-        <svg class="chart" id="chartElev" viewBox="0 0 300 70"></svg>
-      </div>
-      <div class="chart-legend">
-        <span><i style="background:var(--accent)"></i>speed</span>
-        <span><i style="background:var(--elevation)"></i>height</span>
-      </div>
+      <div class="chart-legend"><span>Bold: your run · thin: the measured scenarios</span></div>
     </section>
 
     <section>
@@ -244,11 +222,9 @@
     </section>
 
     <div class="foot-note">
-      Slide geometry: segment lengths measured on the slide, 30° decline as reported; the
-      120° / 45° turn sweeps are estimates (photos + IMU heading). The
-      “measured” clothing options use the effective friction fitted to the
-      waist-IMU recordings — see the <a href="data.html">Data</a> tab for how, and
-      for every run. The other presets are illustrative only.
+      Slide: segment lengths measured, 30° slope measured; turn angles (120° / 45°) estimated from the gyro.
+      The scenarios use frictions fitted to the recordings (logger + videos) — see <a href="results.html">Results</a>.
+      One friction per stretch stands in for everything that slows a rider (fabric, hands, heels, bumps).
     </div>
   </aside>
 </main>
@@ -447,12 +423,9 @@ const sim = {
 
 function currentParams() {
   const pos = POSITION[document.getElementById("posSel").value];
-  const cloth = CLOTHING[document.getElementById("clothSel").value];
-  const mass = parseFloat(document.getElementById("massRange").value);
-  const track = TRACK[activeTrack];
-  const mu = cloth.measured ? cloth.mu * track : cloth.mu * pos.mulMu * track;
-  const muLower = cloth.measured ? cloth.muLower * track : mu;
-  return { pos, cloth, mass, mu, muLower, dragK: cloth.dragK };
+  const mu = parseFloat(document.getElementById("muTRange").value);
+  const muLower = parseFloat(document.getElementById("muLRange").value);
+  return { pos, mass: 75, mu, muLower, dragK: 0.05 };
 }
 
 // Same model as analysis/physics.py. The wall reaction combines gravity's
@@ -489,7 +462,7 @@ function stepPhysics(dt) {
   sim.history.push({ s: sim.s, v: sim.v, t: sim.t, h: point.y });
 }
 
-function pushSpeed() { return parseFloat(document.getElementById("pushRange").value); }
+function pushSpeed() { return parseFloat(document.getElementById("pushRange").value) / 3.6; }
 
 function resetSim() {
   sim.s = replay.run ? replay.run.model.s[0] : START_S;
@@ -527,17 +500,9 @@ fetch("data/runs.json").then(r => r.ok ? r.json() : null).then(doc => {
   const sel = document.getElementById("replaySel");
   replay.runs.forEach((r, i) => {
     const o = document.createElement("option");
-    o.value = i; o.textContent = `#${r.run_id} ${r.subject} · ${r.clothing} — μ ${r.mu_eff.toFixed(3)}`;
+    o.value = i; o.textContent = `#${r.run_id} ${r.subject} · ${r.clothing}`;
     sel.appendChild(o);
   });
-  const avg = (g, k) => { const v = replay.runs.filter(r => r.group === g && r[k] != null).map(r => r[k]); return v.length ? v.reduce((a, b) => a + b) / v.length : null; };
-  for (const [key, g] of [["measured_suit", "full suit"], ["measured_normal", "baseline"]]) {
-    if (avg(g, "mu_eff") == null) continue;
-    CLOTHING[key].mu = avg(g, "mu_eff"); CLOTHING[key].muLower = avg(g, "mu_lower") ?? avg(g, "mu_eff");
-  }
-  if (doc.cop) { CLOTHING.cop_video.mu = doc.cop.mu; CLOTHING.cop_video.muLower = doc.cop.mu; }
-  // every preset starts with the riders' measured push-off speed by default
-  if (doc.v_push) setPush(doc.v_push);
   updateMuNote();
   const want = +new URLSearchParams(location.search).get("replay");
   const idx = replay.runs.findIndex(r => r.run_id === want);
@@ -949,39 +914,49 @@ const scrub = document.getElementById("scrub");
 const scrubLabel = document.getElementById("scrubLabel");
 
 document.getElementById("posSel").addEventListener("change", e => { applyPose(e.target.value); updateMuNote(); });
-document.getElementById("clothSel").addEventListener("change", e => {
-  const c = CLOTHING[e.target.value];
-  clothingMat.color.setHex(c.color);
-  if (c.measured && c.push) setPush(c.push);
+const PRESETS = { list: {}, order: ["up", "flat", "cop", "wannabe"] };
+const PRESET_COLOR = { up: "#e07b39", flat: "#3a78c2", cop: "#c98500", wannabe: "#2a9d8f" };
+const POSE_OF = { up: "supine_feet_first", flat: "supine_feet_first", cop: "prone_feet_first", wannabe: "prone_feet_first" };
+function setSlider(id, v, digits) {
+  document.getElementById(id + "Range").value = v;
+  document.getElementById(id + "Val").textContent = (+v).toFixed(digits);
+}
+function applyPreset(key) {
+  const p = PRESETS.list[key]; if (!p) return;
+  setSlider("push", p.push_kmh.toFixed(1), 1); setSlider("muT", p.mu_turns.toFixed(2), 2); setSlider("muL", p.mu_lower.toFixed(2), 2);
+  document.getElementById("posSel").value = POSE_OF[key]; applyPose(POSE_OF[key]);
+  const extra = p.n ? `median of ${p.n} riders · turns measured ${p.v_turns_measured_kmh.toFixed(1)} km/h` : "one friction for the whole slide that reproduces the video";
+  document.getElementById("scenNote").textContent = extra;
+  clothingMat.color.setHex(key === "cop" ? 0x1d2a44 : key === "wannabe" ? 0x4f7c96 : key === "flat" ? 0x3a5f8c : 0x7a5a3a);
+  if (!sim.running && !replay.run) { resetSim(); refreshUI(); }
   updateMuNote();
-});
+}
+fetch("data/sim_presets.json").then(r => r.ok ? r.json() : null).then(d => {
+  if (!d) return;
+  PRESETS.list = d.presets;
+  const sel = document.getElementById("scenSel");
+  sel.innerHTML = PRESETS.order.filter(k => d.presets[k]).map(k => `<option value="${k}">${d.presets[k].label}</option>`).join("");
+  sel.addEventListener("change", e => applyPreset(e.target.value));
+  applyPreset(new URLSearchParams(location.search).get("scenario") || "flat");
+  sel.value = new URLSearchParams(location.search).get("scenario") || "flat";
+}).catch(() => {});
+["muT", "muL"].forEach(id => document.getElementById(id + "Range").addEventListener("input", e => {
+  document.getElementById(id + "Val").textContent = (+e.target.value).toFixed(2);
+  if (!sim.running && !replay.run) { resetSim(); refreshUI(); }
+  updateMuNote();
+}));
 function setPush(v) {
-  document.getElementById("pushRange").value = v.toFixed(1);
+  document.getElementById("pushRange").value = v;
   document.getElementById("pushVal").textContent = (+v).toFixed(1);
   if (!sim.running && !replay.run) { resetSim(); refreshUI(); }
 }
 document.getElementById("pushRange").addEventListener("input", e => setPush(parseFloat(e.target.value)));
 document.getElementById("replaySel").addEventListener("change", e => {
   replay.run = e.target.value === "" ? null : replay.runs[+e.target.value];
-  if (replay.run) {
-    const key = replay.run.group === "full suit" ? "measured_suit" : "measured_normal";
-    clothingMat.color.setHex(CLOTHING[key].color);
-  }
   resetSim();
   playBtn.textContent = "▶ Run";
   document.getElementById("runLabel").textContent = replay.run ? "REPLAY READY" : "READY";
   refreshUI();
-});
-document.getElementById("massRange").addEventListener("input", e => {
-  document.getElementById("massVal").textContent = e.target.value;
-});
-document.querySelectorAll("[data-track]").forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll("[data-track]").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    activeTrack = btn.dataset.track;
-    updateMuNote();
-  });
 });
 document.querySelectorAll("[data-speed]").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -999,13 +974,7 @@ document.querySelectorAll("[data-cam]").forEach(btn => {
   });
 });
 
-function updateMuNote() {
-  const { mu } = currentParams();
-  const c = CLOTHING[document.getElementById("clothSel").value];
-  document.getElementById("muNote").textContent = c.measured
-    ? `μ ≈ ${mu.toFixed(3)} turns / ${currentParams().muLower.toFixed(3)} lower slide · fitted to the recorded runs (stall ${Math.tan(THETA).toFixed(3)})`
-    : `μ ≈ ${mu.toFixed(3)} · illustrative, not measured`;
-}
+function updateMuNote() { }
 updateMuNote();
 
 playBtn.addEventListener("click", () => {
@@ -1038,15 +1007,16 @@ function finishRun() {
   const head = replay.run ? `Replay #${replay.run.run_id} ${replay.run.subject} (${replay.run.clothing}) · ` : "";
   document.getElementById("resultLine").innerHTML = head + (sim.stalled
     ? (sim.s >= S_BOTTOM ? `Came to rest <b>on the exit flat</b> at s = <b>${sim.s.toFixed(2)} m</b> · ` : `Stalled <b>${where}</b> at s = <b>${sim.s.toFixed(2)} m</b> · `)
-    : `Exit speed <b>${sim.v.toFixed(2)} m/s</b> (${(sim.v * 3.6).toFixed(1)} km/h) · `) +
-    `peak <b>${sim.peakV.toFixed(2)} m/s</b> · time <b>${sim.t.toFixed(2)} s</b> · μ≈${mu.toFixed(3)}`;
+    : `Shot off the end at <b>${(sim.v * 3.6).toFixed(1)} km/h</b> · `) +
+    `top speed <b>${(sim.peakV * 3.6).toFixed(1)} km/h</b> · <b>${sim.t.toFixed(1)} s</b> on the slide` +
+    (PRESETS.list.cop ? ` (the cop: ${PRESETS.list.cop.t_end.toFixed(1)} s, ${PRESETS.list.cop.v_exit_kmh.toFixed(0)} km/h off the end)` : "");
   playBtn.textContent = "▶ Run";
   document.getElementById("runLabel").textContent = "FINISHED";
   document.getElementById("runDot").style.background = "var(--good)";
 }
 
 function refreshUI(fromScrub) {
-  document.getElementById("tvSpeed").innerHTML = sim.v.toFixed(2) + '<span class="tu">m/s</span>';
+  document.getElementById("tvSpeed").innerHTML = (sim.v * 3.6).toFixed(1) + '<span class="tu">km/h</span>';
   document.getElementById("tvTime").innerHTML = sim.t.toFixed(2) + '<span class="tu">s</span>';
   document.getElementById("tvDist").innerHTML = sim.s.toFixed(2) + '<span class="tu">m</span>';
   const { curvature } = lerpTable(sim.s);
@@ -1056,15 +1026,40 @@ function refreshUI(fromScrub) {
     scrub.value = Math.min(1000, (sim.s / TOTAL_LENGTH) * 1000);
     scrubLabel.textContent = sim.t.toFixed(1) + "s";
   }
-  document.getElementById("peakSpeedLbl").textContent = "peak " + sim.peakV.toFixed(2) + " m/s";
-  document.getElementById("dropLbl").textContent = "drop " + TOTAL_DROP.toFixed(2) + " m";
+  document.getElementById("peakSpeedLbl").textContent = "peak " + (sim.peakV * 3.6).toFixed(1) + " km/h";
   drawCharts();
 }
 
 /* ================================================================= CHARTS */
 function drawCharts() {
-  drawLineChart("chartSpeed", sim.history, h => h.s, h => h.v, "var(--accent)", 0, TOTAL_LENGTH);
-  drawLineChart("chartElev", sim.history, h => h.s, h => h.h, "var(--elevation)", 0, TOTAL_LENGTH);
+  drawSpeedChart();
+}
+function drawSpeedChart() {
+  const svg = document.getElementById("chartSpeed"), W = 300, H = 150, L = 22, R = 6, T = 6, B = 16, VMAX = 25;
+  const sx = s => L + s / TOTAL_LENGTH * (W - L - R), sy = v => H - B - Math.min(v, VMAX) / VMAX * (H - T - B);
+  let g = "";
+  // turns band
+  const t0 = S_RIGHT_START, t1 = S_RIGHT_START + TURN_R_LEN + TURN_L_LEN;
+  g += `<rect x="${sx(t0)}" y="${T}" width="${sx(t1) - sx(t0)}" height="${H - T - B}" fill="var(--grid)" opacity="0.6"/>`;
+  g += `<text x="${(sx(t0) + sx(t1)) / 2}" y="${T + 9}" fill="var(--text-faint)" font-size="7.5" text-anchor="middle">turns</text>`;
+  for (const v of [0, 10, 20]) g += `<line x1="${L}" x2="${W - R}" y1="${sy(v)}" y2="${sy(v)}" stroke="var(--grid)"/><text x="${L - 3}" y="${sy(v) + 3}" fill="var(--text-faint)" font-size="7.5" text-anchor="end">${v}</text>`;
+  for (const s of [0, 4, 8, 12]) g += `<text x="${sx(s)}" y="${H - 4}" fill="var(--text-faint)" font-size="7.5" text-anchor="middle">${s} m</text>`;
+  PRESETS.order.forEach(k => {
+    const p = PRESETS.list[k]; if (!p) return;
+    const d = p.s.map((s, i) => (i ? "L" : "M") + sx(s).toFixed(1) + "," + sy(p.v[i]).toFixed(1)).join("");
+    g += `<path d="${d}" fill="none" stroke="${PRESET_COLOR[k]}" stroke-width="1.2" opacity="0.85"/>`;
+    const at = { up: 10.0, flat: 11.2, cop: 3.0, wannabe: 6.0 }[k], dy = { up: -4, flat: -4, cop: -5, wannabe: 9 }[k];
+    let j = p.s.findIndex(s => s >= at); if (j < 0) j = p.s.length - 1;
+    const short = { up: "sitting up", flat: "lying flat", cop: "the cop", wannabe: "wannabe cop" }[k];
+    g += `<text x="${sx(p.s[j])}" y="${sy(p.v[j]) + dy}" fill="${PRESET_COLOR[k]}" font-size="7.5" font-weight="600" text-anchor="middle">${short}</text>`;
+  });
+  if (sim.history.length > 1) {
+    const d = sim.history.map((h, i) => (i ? "L" : "M") + sx(h.s).toFixed(1) + "," + sy(h.v * 3.6).toFixed(1)).join("");
+    g += `<path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round"/>`;
+    const h = sim.history[sim.history.length - 1];
+    g += `<circle cx="${sx(h.s)}" cy="${sy(h.v * 3.6)}" r="3" fill="var(--accent)"/><text x="${sx(h.s) + 4}" y="${sy(h.v * 3.6) - 4}" fill="var(--accent)" font-size="8" font-weight="600">you</text>`;
+  }
+  svg.innerHTML = g;
 }
 function drawLineChart(svgId, data, xf, yf, color, xMin, xMax) {
   const svg = document.getElementById(svgId);
@@ -1111,7 +1106,7 @@ function drawLineChart(svgId, data, xf, yf, color, xMin, xMax) {
   svg.appendChild(dot);
 }
 
-clothingMat.color.setHex(CLOTHING.measured_suit.color);
+
 resetSim();
 refreshUI();
 </script>

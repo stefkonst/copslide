@@ -117,7 +117,7 @@
 <header>
   <h1>ANGELCON</h1>
   <span class="sub">the last straight: could we have beaten the cop?</span>
-  <nav class="tabs"><a class="tab" href="../">Simulation</a><a class="tab" href="../data.html">Data</a><a class="tab active" href="./">Launch</a></nav>
+  <nav class="tabs"><a class="tab" href="../">Simulation</a><a class="tab active" href="./">Launch</a><a class="tab" href="../results.html">Results</a><a class="tab" href="../data.html">Data</a></nav>
 </header>
 <main>
   <ol class="findings">
@@ -163,7 +163,7 @@ const $ = id => document.getElementById(id);
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const fmt = (v, d = 1) => (v == null || Number.isNaN(v)) ? "—" : (+v).toFixed(d);
 const tip = $("tip");
-const V = "20261018095255";
+const V = "20261018101038";
 /* ------------------------------------------------------------------ chart */
 function niceTicks(lo, hi, n = 5) {
   const span = hi - lo || 1, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
@@ -461,6 +461,8 @@ function update(play = false) {
     tile("Tube mouth → lip", r.out ? r.tLip.toFixed(2) : "stops", r.out ? "s" : "", r.out ? (Math.abs(dT) <= COP_DT ? "= the cop (0.70 s)" : dT < 0 ? `${(-dT).toFixed(2)} s faster than the cop` : `${dT.toFixed(2)} s slower than the cop`) : `at ${r.sStop.toFixed(1)} m`) +
     tile("Speed off the lip", (r.vExit * KMH).toFixed(1), "km/h", "the cop ≈ 19–24") +
     tile("Flight before touching down", r.flight.toFixed(1), "m", "") +
+    ((D && D.riders[SEL]) ? tile(`${SEL}, measured on video`, D.riders[SEL].t_mouth_lip_feet_measured.toFixed(2), "s",
+      `tube mouth → lip (feet) · model ${D.riders[SEL].t_mouth_lip ? D.riders[SEL].t_mouth_lip.toFixed(2) : "—"} s`) : "") +
     tile("Effective friction", st.muEff.toFixed(2), "", `${st.mu.toFixed(2)} × ${st.w.k.toFixed(2)} wedging (wall pushes at ${st.w.phi.toFixed(0)}°)`);
   drawSpeed(st, r);
   drawMap(st);
