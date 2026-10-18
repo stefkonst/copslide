@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Last Straight Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  :root{
+    --bg:#11151a; --bg-raised:#171c22; --panel:#1b2128; --panel-2:#20262e;
+    --border:#2a333d; --border-soft:#232a32;
+    --text:#e7ebee; --text-dim:#93a0ac; --text-faint:#6b7883;
+    --accent:#ff6a33; --accent-soft:rgba(255,106,51,.14);
+    --grid:#262e37; --axis:#3a4550;
+    /* one colour per participant (validated categorical slots 1-3, dark steps) */
+    --angel:#3987e5; --stef:#d95926; --riderb:#199e70; --unk:#8a8984; --cop:#c98500;
+    --sim1:#d9dee2; --sim2:#9aa6b0; --sim3:#66727c;
+    --seg-upper:#3b5f86; --seg-right:#7a3d5c; --seg-left:#7a5a1e; --seg-lower:#1f5f4a; --seg-flat:#3a4450;
+    --font-display:'Oswald',sans-serif; --font-body:'Inter',sans-serif; --font-mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg); color:var(--text); font-family:var(--font-body); font-size:14px; line-height:1.5}
+  a{color:var(--accent)}
+  header{display:flex; align-items:baseline; gap:14px; padding:12px 18px; border-bottom:1px solid var(--border);
+    background:var(--bg-raised); position:sticky; top:0; z-index:5; flex-wrap:wrap}
+  header h1{font-family:var(--font-display); font-weight:600; font-size:17px; letter-spacing:.04em; text-transform:uppercase; margin:0}
+  header .sub{font-size:12px; color:var(--text-faint); font-family:var(--font-mono)}
+  .tabs{display:flex; gap:4px; margin-left:18px}
+  .tab{font-family:var(--font-display); font-size:12px; letter-spacing:.08em; text-transform:uppercase; text-decoration:none;
+    color:var(--text-dim); padding:5px 12px; border:1px solid var(--border); border-radius:5px}
+  .tab.active{color:var(--accent); border-color:var(--accent); background:var(--accent-soft)}
+  .tab:hover{color:var(--text)}
+  main{max-width:1180px; margin:0 auto; padding:22px 16px 60px}
+  h2{font-family:var(--font-display); font-weight:600; font-size:15px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--text-dim); margin:38px 0 12px; display:flex; align-items:center; gap:10px}
+  h2::after{content:""; flex:1; height:1px; background:var(--border)}
+  h3{font-size:13px; font-weight:600; margin:0 0 6px; color:var(--text)}
+  p{margin:6px 0 10px; color:var(--text-dim); max-width:78ch}
+  p b, li b{color:var(--text)}
+  .lede{font-size:16px; color:var(--text); max-width:80ch}
+  .tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:10px; margin:16px 0}
+  .tile{background:var(--panel); border:1px solid var(--border-soft); border-radius:8px; padding:12px 14px}
+  .tile .tl{font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-faint)}
+  .tile .tv{font-family:var(--font-mono); font-size:26px; font-weight:500; font-variant-numeric:tabular-nums; margin-top:2px}
+  .tile .tu{font-size:12px; color:var(--text-faint); margin-left:4px}
+  .tile .tn{font-size:11.5px; color:var(--text-dim); margin-top:2px}
+  .key{display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; vertical-align:-1px}
+  .card{background:var(--panel); border:1px solid var(--border-soft); border-radius:8px; padding:14px 14px 10px; margin-bottom:12px}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  @media (max-width:860px){.grid2{grid-template-columns:1fr}}
+  .legend{display:flex; flex-wrap:wrap; gap:6px 14px; font-size:11.5px; color:var(--text-dim); margin:4px 0 6px}
+  .legend span{display:inline-flex; align-items:center; gap:6px; cursor:default}
+  .legend i{display:inline-block; width:16px; height:0; border-top:2px solid; }
+  .legend i.dash{border-top-style:dashed}
+  .legend i.dot{width:8px; height:8px; border:none; border-radius:50%}
+  svg.chart{width:100%; display:block; overflow:visible; touch-action:pan-y}
+  .tip{position:fixed; pointer-events:none; background:#0d1014ee; border:1px solid var(--border); border-radius:6px;
+    padding:7px 9px; font-size:11.5px; font-family:var(--font-mono); color:var(--text); z-index:20; display:none; max-width:320px}
+  .tip .r{display:flex; gap:8px; align-items:center; white-space:nowrap}
+  .tip .r i{width:9px; height:9px; border-radius:2px; display:inline-block}
+  .chips{display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 12px}
+  .chip{font:500 12.5px var(--font-body); color:var(--text); background:var(--panel-2); border:1px solid var(--border);
+    border-radius:99px; padding:6px 12px; cursor:pointer}
+  .chip:hover{border-color:#44505c}
+  .chip.active{border-color:var(--accent); background:var(--accent-soft); color:var(--accent)}
+  .chip .key{margin-right:6px}
+  .tablewrap{overflow-x:auto; border:1px solid var(--border-soft); border-radius:8px}
+  table{border-collapse:collapse; width:100%; font-size:12.5px; min-width:900px}
+  th,td{padding:7px 9px; text-align:right; border-bottom:1px solid var(--border-soft); white-space:nowrap}
+  th{font-weight:600; color:var(--text-dim); background:var(--panel); position:sticky; top:0; font-size:11.5px}
+  td{font-family:var(--font-mono); font-variant-numeric:tabular-nums}
+  td.l, th.l{text-align:left; font-family:var(--font-body)}
+  tbody tr{cursor:pointer}
+  tbody tr:hover{background:var(--panel-2)}
+  tbody tr.sel{background:var(--accent-soft)}
+  td.note{font-family:var(--font-body); color:var(--text-dim); white-space:normal; min-width:240px; text-align:left}
+  .runhead{display:flex; flex-wrap:wrap; align-items:baseline; gap:10px 18px; margin-bottom:10px}
+  .runhead .big{font-family:var(--font-display); font-size:20px; letter-spacing:.03em}
+  .btn{font:600 12.5px var(--font-body); color:#1a0e07; background:var(--accent); border-radius:5px; padding:7px 12px; text-decoration:none}
+  .notes{font-size:12px; color:var(--text-dim)}
+  .gallery{display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:12px}
+  .gallery figure{margin:0; background:#fcfcfb; border-radius:8px; overflow:hidden; border:1px solid var(--border-soft)}
+  .gallery img{width:100%; height:230px; object-fit:contain; display:block; background:#fcfcfb}
+  .gallery figcaption{background:var(--panel); color:var(--text-dim); font-size:12px; padding:8px 10px}
+  .gallery a{text-decoration:none}
+  ol li, ul li{color:var(--text-dim); margin:4px 0; max-width:80ch}
+  code{font-family:var(--font-mono); font-size:12px; background:var(--panel-2); padding:1px 5px; border-radius:4px; color:var(--text)}
+  pre{font-family:var(--font-mono); font-size:12px; background:var(--panel); border:1px solid var(--border-soft); border-radius:8px; padding:10px 12px; overflow-x:auto; color:var(--text)}
+  .warn{border-left:3px solid #c98500; padding:6px 12px; background:#c9850012; border-radius:0 6px 6px 0; color:var(--text-dim); margin:10px 0}
+  .frow{display:grid; grid-template-columns:minmax(150px,46%) 1fr 48px; gap:8px; align-items:center; font-size:12px; color:var(--text-dim); margin:4px 0}
+  .frow .fb{height:12px; position:relative}
+  .frow .fb i{position:absolute; left:0; top:0; bottom:0; border-radius:0 4px 4px 0; box-sizing:border-box}
+  .frow b{font-family:var(--font-mono); color:var(--text); font-weight:500; text-align:right}
+  .vidcard{display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:14px; align-items:start}
+  @media (max-width:860px){.vidcard{grid-template-columns:1fr}}
+  .vidwrap video{width:100%; display:block; border-radius:6px; background:#000}
+  .vidside .tile .tv{font-size:20px}
+  .loading{color:var(--text-faint); font-family:var(--font-mono); font-size:12px}
+</style>
+</head>
+<body>
+<style>
+  .lab{display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:14px; align-items:start}
+  @media (max-width:900px){.lab{grid-template-columns:1fr}}
+  #view{height:380px; border-radius:8px; overflow:hidden; background:var(--panel)}
+  .slider{margin:10px 0 14px}
+  .slider label{display:flex; justify-content:space-between; font-size:13px; color:var(--text-dim)}
+  .slider label b{color:var(--text); font-family:var(--font-mono); font-weight:500}
+  .slider input{width:100%; accent-color:var(--accent)}
+  .findings{max-width:90ch; padding-left:1.3em; line-height:1.55; font-size:15px}
+  .findings li{margin:6px 0}
+  details.more summary{cursor:pointer; color:var(--text-dim); margin:8px 0}
+  details.more li{margin:4px 0; font-size:13px; color:var(--text-dim)}
+</style>
+<header>
+  <h1>ANGELCON</h1>
+  <span class="sub">the last straight: could we have beaten the cop?</span>
+  <nav class="tabs"><a class="tab" href="../">Simulation</a><a class="tab" href="../data.html">Data</a><a class="tab active" href="./">Launch</a></nav>
+</header>
+<main>
+  <ol class="findings">
+    <li><b>On the last straight, our fastest riders were already as slippery as clothes on steel get</b> (friction ≈ 0.10).
+      Posture can't add much: rolling onto the side or moulding into the trough saves under 2 %.</li>
+    <li><b>They were still slower than the cop:</b> 0.81–0.84 s from the tube mouth to the lip vs his 0.70 s, because
+      they came out of the tube at 13–14 km/h and he needed at least ~18 km/h.</li>
+    <li><b>The difference is made in the turns.</b> To come out of the tube at 18 km/h you have to leave the turns at
+      about 12 km/h; our riders left them at 4–6 km/h.</li>
+    <li><b>A "wannabe cop" (internet clip, full rain suit, same face-down twisted posture) did 0.75 s</b>: a slick suit
+      and that posture get you close to the cop.</li>
+  </ol>
+
+  <div class="lab">
+    <div class="card"><div id="view"></div>
+      <div class="chips" style="margin-top:8px"><button class="chip" id="play">▶ slide (½ speed)</button></div></div>
+    <div class="card">
+      <h3>Try it</h3>
+      <div class="slider"><label>Speed coming out of the tube <b id="vV"></b></label><input id="sV" type="range" min="2" max="30" step="0.5"></div>
+      <div class="slider"><label>Body rotation (0° = flat on back or belly, 90° = on the side) <b id="vR"></b></label><input id="sR" type="range" min="0" max="90" step="5"></div>
+      <div class="slider"><label>Friction of the clothes on the steel <b id="vM"></b></label><input id="sM" type="range" min="0.05" max="0.6" step="0.01"></div>
+      <p class="notes">Start from a rider:</p>
+      <div class="chips" id="presets"></div>
+    </div>
+  </div>
+  <div class="tiles" id="tiles"></div>
+  <div class="grid2">
+    <div class="card"><h3>Speed along the last straight</h3><div class="legend" id="legS"></div><svg class="chart" id="cS" height="300"></svg></div>
+    <div class="card"><h3>What it takes to match the cop</h3><svg class="chart" id="cMap" height="330"></svg>
+      <p class="notes">Dots: our riders who shot off (fitted from the landing video + logger; lines = ±1σ for the selected one). Click a dot to load it.</p></div>
+  </div>
+  <div class="gallery" id="figs"></div>
+  <details class="more"><summary>Physics and assumptions</summary><ul><li>(all used below; the web page lists the same)</li><li>slide 30.0 deg slope (measured), lower straight ends at s = 11.05 m, the slope eases to the flat over 0.40 m (11.05-11.45), flat to the lip at 12.75 m, lip 0.55 m above the ground. Trough = circular arc, radius 0.375 m (0.75 m opening, measured). Covered tube 7.05-8.55 m.</li><li>body a rigid body sliding along the trough axis, treated as a point at its centre of mass (CoM) for the equation of motion. Feet-first riders: CoM 0.90 m behind the feet; the cop's vest (chest) is taken as his CoM (+-0.3 m, affects only where the slope->flat bend is felt). Mass cancels out except in air drag (75 kg used).</li><li>contact the body rests on the trough wall at its two outer edges (rigid shoulders/hips). For a contact width w in a trough of radius R the wall pushes at angle phi from straight down, sin(phi) = w / 2R, so the total pressing force is the weight component / cos(phi) ("wedging"). Contact width: lying flat (back or belly) 0.42 m (shoulders), on the side 0.24 m (body depth), in between w = 0.42|cos r| + 0.24|sin r|. A soft body that moulds into the curve wedges less: the rigid-edge value is an upper bound, 1.0 the lower bound.</li><li>friction mu = fabric on steel, constant along the stretch and with speed (Coulomb). mu_eff = mu * wedge factor is what the videos measure.</li><li>air drag 1/2 rho Cd A v^2, rho = 1.2 kg/m3, Cd*A = 0.12 m2 lying feet first, 0.40 m2 sitting up. Below 1 % of gravity at these speeds.</li><li>bend the slope->flat bend presses the body down by v^2 * curvature (curvature = 30 deg / 0.40 m): extra friction while turning flat.</li><li>flight leaves the lip horizontally; CoM 0.67 m above the ground; flight distance = v_exit * sqrt(2 h / g).</li><li>data riders: leading shoe at 9.0 m, 11.45 m and the lip, read frame by frame at 30 fps (+-0.047 s per interval), plus the logger's speed leaving the turns (+-20 %); the two are fitted jointly as one ride. Cop: torso out of the tube mouth and over the lip, effectively 15 fps (63 of 168 frames are duplicates): 0.70 +- 0.067 s. "Wannabe cop" internet clip (rain suit, same posture): 0.75 +- 0.07 s, read the same way.</li><li>limits friction of clothes on steel is at least ~0.10, so mu_eff >= 0.10 is imposed. Without it the fastest riders' fits drift to 0, i.e. the logger reads their speed leaving the turns ~10-15 % low; with the floor, the fit raises that speed instead (within its +-20 %).</li></ul></details>
+  <p class="notes" id="gen"></p>
+</main>
+<div class="tip" id="tip"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const fmt = (v, d = 1) => (v == null || Number.isNaN(v)) ? "—" : (+v).toFixed(d);
+const tip = $("tip");
+const V = "20261018083956";
+/* ------------------------------------------------------------------ chart */
+function niceTicks(lo, hi, n = 5) {
+  const span = hi - lo || 1, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= step0);
+  const out = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(10));
+  return out;
+}
+function interpAt(xs, ys, x) {
+  if (!xs.length || x < xs[0] || x > xs[xs.length - 1]) return null;
+  let lo = 0, hi = xs.length - 1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; xs[m] < x ? lo = m : hi = m; }
+  const f = (x - xs[lo]) / (xs[hi] - xs[lo] || 1); return ys[lo] + (ys[hi] - ys[lo]) * f;
+}
+/* opts: {series:[{name,color,x,y,dash,width,hover:true}], points:[{x,y,color,name,shape}], bands:[{x0,x1,color,label}],
+          hlines:[{y,label}], xLabel, yLabel, xDomain, yDomain, logY, xFmt, yFmt} */
+function lineChart(svg, o) {
+  const W = svg.clientWidth || 600, H = +svg.getAttribute("height") || 260;
+  const M = { l: 48, r: o.rightPad || 12, t: 16, b: 34 };
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const allX = o.series.flatMap(s => s.x).concat((o.points || []).map(p => p.x));
+  const allY = o.series.flatMap(s => s.y).concat((o.points || []).map(p => p.y)).filter(v => v != null && isFinite(v));
+  const [x0, x1] = o.xDomain || [Math.min(...allX), Math.max(...allX)];
+  let [y0, y1] = o.yDomain || [Math.min(0, ...allY), Math.max(...allY) * 1.08];
+  const ly = o.logY;
+  const tyv = v => ly ? Math.log10(Math.max(v, 1e-6)) : v;
+  if (ly) { y0 = Math.log10(o.yDomain[0]); y1 = Math.log10(o.yDomain[1]); }
+  const sx = v => M.l + (v - x0) / (x1 - x0 || 1) * (W - M.l - M.r);
+  const sy = v => H - M.b - (tyv(v) - y0) / (y1 - y0 || 1) * (H - M.t - M.b);
+  let g = "";
+  (o.bands || []).forEach(b => {
+    const a = Math.max(sx(b.x0), M.l), c = Math.min(sx(b.x1), W - M.r);
+    if (c > a) g += `<rect x="${a}" y="${M.t}" width="${c - a}" height="${H - M.t - M.b}" fill="${b.color}" opacity=".45"/>` +
+      (b.label ? `<text x="${(a + c) / 2}" y="${M.t - 4}" fill="${css("--text-faint")}" font-size="9.5" text-anchor="middle">${b.label}</text>` : "");
+  });
+  const yt = ly ? [-3, -2, -1, 0].filter(v => v >= y0 - 1e-9 && v <= y1 + 1e-9) : niceTicks(y0, y1);
+  yt.forEach(v => {
+    const y = ly ? H - M.b - (v - y0) / (y1 - y0) * (H - M.t - M.b) : sy(v);
+    g += `<line x1="${M.l}" x2="${W - M.r}" y1="${y}" y2="${y}" stroke="${css("--grid")}"/>` +
+      `<text x="${M.l - 6}" y="${y + 3.5}" fill="${css("--text-faint")}" font-size="10" text-anchor="end" font-family="JetBrains Mono">${ly ? (Math.pow(10, v)).toString() : (o.yFmt || (x => x))(v)}</text>`;
+  });
+  niceTicks(x0, x1, Math.max(3, Math.round(W / 90))).forEach(v => {
+    g += `<line x1="${sx(v)}" x2="${sx(v)}" y1="${H - M.b}" y2="${H - M.b + 4}" stroke="${css("--axis")}"/>` +
+      `<text x="${sx(v)}" y="${H - M.b + 16}" fill="${css("--text-faint")}" font-size="10" text-anchor="middle" font-family="JetBrains Mono">${(o.xFmt || (x => x))(v)}</text>`;
+  });
+  g += `<line x1="${M.l}" x2="${W - M.r}" y1="${H - M.b}" y2="${H - M.b}" stroke="${css("--axis")}"/>`;
+  (o.hlines || []).forEach(h => {
+    g += `<line x1="${M.l}" x2="${W - M.r}" y1="${sy(h.y)}" y2="${sy(h.y)}" stroke="${css("--text-faint")}" stroke-dasharray="3 3"/>` +
+      `<text x="${W - M.r - 4}" y="${sy(h.y) - 4}" fill="${css("--text-dim")}" font-size="10" text-anchor="end">${h.label}</text>`;
+  });
+  g += `<text x="${(M.l + W - M.r) / 2}" y="${H - 3}" fill="${css("--text-dim")}" font-size="11" text-anchor="middle">${o.xLabel || ""}</text>`;
+  g += `<text transform="translate(12 ${(M.t + H - M.b) / 2}) rotate(-90)" fill="${css("--text-dim")}" font-size="11" text-anchor="middle">${o.yLabel || ""}</text>`;
+  g += `<clipPath id="c_${svg.id}"><rect x="${M.l}" y="${M.t - 2}" width="${W - M.l - M.r}" height="${H - M.t - M.b + 4}"/></clipPath><g clip-path="url(#c_${svg.id})">`;
+  o.series.forEach(s => {
+    let d = "", pen = false;
+    s.x.forEach((x, i) => {
+      const y = s.y[i];
+      if (y == null || !isFinite(y) || (ly && y <= 0)) { pen = false; return; }
+      d += (pen ? "L" : "M") + sx(x).toFixed(1) + "," + sy(y).toFixed(1); pen = true;
+    });
+    g += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.width || 2}" stroke-linejoin="round" stroke-linecap="round" ${s.dash ? `stroke-dasharray="${s.dash}"` : ""} opacity="${s.opacity || 1}"/>`;
+  });
+  (o.points || []).forEach(p => {
+    const X = sx(p.x), Y = sy(p.y);
+    if (p.square) g += `<rect x="${X - 5}" y="${Y - 5}" width="10" height="10" fill="${p.hollow ? css("--panel") : p.color}" stroke="${p.color}" stroke-width="2.2"/>`;
+    else g += p.hollow
+      ? `<circle cx="${X}" cy="${Y}" r="4.5" fill="${css("--panel")}" stroke="${p.color}" stroke-width="2.2"/>`
+      : `<circle cx="${X}" cy="${Y}" r="5" fill="${p.color}" stroke="${css("--panel")}" stroke-width="2"/>`;
+  });
+  g += `</g>`;
+  const labs = o.series.filter(s => s.label).map(s => {
+    if (s.labelX != null) { const yv = interpAt(s.x, s.y, s.labelX); if (yv != null) return { X: sx(s.labelX), Y: sy(yv) + (s.labelDy || -10), t: s.label, c: s.color, a: "middle" }; }
+    let n = s.x.length - 1;
+    while (n > 0 && (s.x[n] > x1 || s.y[n] == null || tyv(s.y[n]) > y1)) n--;
+    return { X: sx(s.x[n]), Y: Math.max(M.t + 6, sy(s.y[n])), t: s.label, c: s.color };
+  }).sort((a, b) => a.Y - b.Y);
+  for (let i = 1; i < labs.length; i++) if (labs[i].Y - labs[i - 1].Y < 14) labs[i].Y = labs[i - 1].Y + 14;
+  labs.forEach(l => g += `<text x="${l.a ? l.X : l.X + 6}" y="${l.Y + 4}" fill="${l.c}" font-size="11.5" font-weight="600" text-anchor="${l.a || "start"}" paint-order="stroke" stroke="${css("--panel")}" stroke-width="3">${l.t}</text>`);
+  (o.notes || []).forEach(n => g += `<text x="${sx(n.x)}" y="${sy(n.y)}" fill="${n.color || css("--text")}" font-size="${n.size || 11.5}" font-style="italic" text-anchor="${n.anchor || "middle"}">${n.text}</text>`);
+  g += `<line id="xh_${svg.id}" y1="${M.t}" y2="${H - M.b}" stroke="${css("--text-faint")}" visibility="hidden"/>`;
+  g += `<rect x="${M.l}" y="${M.t}" width="${W - M.l - M.r}" height="${H - M.t - M.b}" fill="transparent" id="hit_${svg.id}"/>`;
+  g += `<line id="cur_${svg.id}" y1="${M.t}" y2="${H - M.b}" stroke="${css("--accent")}" stroke-width="2" visibility="hidden"/>`;
+  svg.innerHTML = g;
+  svg._sx = sx; svg._x0 = x0; svg._x1 = x1; svg._ml = M.l; svg._mr = M.r; svg._w = W;
+  const xh = svg.querySelector(`#xh_${svg.id}`), hit = svg.querySelector(`#hit_${svg.id}`);
+  hit.addEventListener("click", e => {
+    const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) * W / r.width;
+    svg.dispatchEvent(new CustomEvent("chartclick", { detail: x0 + (px - M.l) / (W - M.l - M.r) * (x1 - x0) }));
+  });
+  const move = e => {
+    const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) * W / r.width;
+    const x = x0 + (px - M.l) / (W - M.l - M.r) * (x1 - x0);
+    xh.setAttribute("x1", px); xh.setAttribute("x2", px); xh.setAttribute("visibility", "visible");
+    let rows = o.series.filter(s => s.hover !== false).map(s => [s, interpAt(s.x, s.y, x)]).filter(r => r[1] != null);
+    const pts = (o.points || []).filter(p => Math.abs(sx(p.x) - px) < 8);
+    let h = `<div style="color:${css("--text-dim")}">${o.xLabel ? o.xLabel.split(" (")[0] : "x"} ${(o.xFmt || (v => v.toFixed(2)))(+x.toFixed(2))}</div>`;
+    rows.slice(0, 9).forEach(([s, v]) => h += `<div class="r"><i style="background:${s.color}"></i>${s.name}: <b>${(o.yFmt || (z => z.toFixed(2)))(+v.toFixed(3))}</b></div>`);
+    pts.forEach(p => h += `<div class="r"><i style="background:${p.color}"></i>${p.name}: <b>${p.y.toFixed(2)}</b></div>`);
+    tip.innerHTML = h; tip.style.display = "block";
+    const tx = Math.min(e.clientX + 14, window.innerWidth - tip.offsetWidth - 8);
+    tip.style.left = tx + "px"; tip.style.top = (e.clientY + 14) + "px";
+  };
+  hit.addEventListener("pointermove", move);
+  hit.addEventListener("pointerleave", () => { tip.style.display = "none"; xh.setAttribute("visibility", "hidden"); });
+}
+function setCursor(svg, x) {
+  const c = svg && svg.querySelector(`#cur_${svg.id}`);
+  if (!c) return;
+  if (x == null || x < svg._x0 || x > svg._x1) { c.setAttribute("visibility", "hidden"); return; }
+  const X = svg._sx(x);
+  c.setAttribute("x1", X); c.setAttribute("x2", X); c.setAttribute("visibility", "visible");
+}
+function legend(el, items) {
+  el.innerHTML = items.map(it => `<span><i class="${it.dash ? "dash" : ""}${it.dot ? " dot" : ""}" style="border-color:${it.color};${it.dot ? "background:" + it.color : ""}"></i>${it.name}</span>`).join("");
+}
+
+/* The last straight: tube mouth -> trough -> flat -> lip -> flight.
+   Same physics as analysis/laststraight.py (see the assumptions on the page). */
+const G = 9.81, TH = 30 * Math.PI / 180, S_MOUTH = 8.55, S_B0 = 11.05, S_B1 = 11.45, S_LIP = 12.75;
+const R_T = 0.375, LIP_H = 0.55, COM_H = 0.12, W_FLAT = 0.42, W_SIDE = 0.24, MASS = 75, RHO = 1.2, CDA = 0.12;
+const KAP = TH / (S_B1 - S_B0), KMH = 3.6, COP_T = 0.70, COP_DT = 0.067;
+const COPC = "#c98500", RIDC = "#3a78c2", SIMC = "#e0453a";
+let D = null, SEL = "P12";
+
+const pitch = s => s < S_B0 ? TH : s < S_B1 ? TH * (1 - (s - S_B0) / (S_B1 - S_B0)) : 0;
+function wedge(rollDeg) {
+  const r = rollDeg * Math.PI / 180, w = W_FLAT * Math.abs(Math.cos(r)) + W_SIDE * Math.abs(Math.sin(r));
+  const sp = Math.min(w / (2 * R_T), 0.95);
+  return { k: 1 / Math.sqrt(1 - sp * sp), w, phi: Math.asin(sp) * 180 / Math.PI };
+}
+function accel(s, v, mu) {
+  const th = pitch(s), k = s >= S_B0 && s < S_B1 ? KAP : 0;
+  return G * Math.sin(th) - mu * (G * Math.cos(th) + v * v * k) - 0.5 * RHO * CDA * v * v / MASS;
+}
+function simulate(v0, muEff, s0 = S_MOUTH) {
+  let s = s0, v = v0, t = 0; const T = [0], S = [s], V = [v], dt = 0.001;
+  while (s < S_LIP && t < 20) {
+    const a = accel(s, v, muEff);
+    if (v <= 0 && a <= 0) break;
+    v = Math.max(0, v + a * dt); s += v * dt; t += dt;
+    if (Math.round(t / dt) % 5 === 0) { T.push(t); S.push(s); V.push(v); }
+  }
+  T.push(t); S.push(Math.min(s, S_LIP)); V.push(v);
+  const out = s >= S_LIP;
+  const fl = out ? v * Math.sqrt(2 * (LIP_H + COM_H) / G) : 0;
+  return { T, S, V, out, tLip: out ? t : null, vExit: out ? v : 0, flight: fl, sStop: s };
+}
+/* the cop's effective friction for a given speed out of the tube (his 0.70 s) */
+function copMu(v0, tTarget = COP_T) {
+  let lo = -0.2, hi = 0.8;
+  for (let i = 0; i < 40; i++) {
+    const m = (lo + hi) / 2, r = simulate(v0, m);
+    if (!r.out || r.tLip > tTarget) hi = m; else lo = m;
+  }
+  return (lo + hi) / 2;
+}
+
+/* the cop's speed out of the tube for a given effective friction (his 0.70 s) */
+function copV(muEff, tTarget = COP_T) {
+  let lo = 0.5, hi = 15;
+  for (let i = 0; i < 40; i++) {
+    const m = (lo + hi) / 2, r = simulate(m, muEff);
+    if (r.out && r.tLip <= tTarget) hi = m; else lo = m;
+  }
+  return hi;
+}
+
+/* ------------------------------------------------------------ 3-D view */
+let three = null;
+function initThree() {
+  const host = $("view"), W = host.clientWidth, H = host.clientHeight;
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(css("--panel") || "#1b2128");
+  const cam = new THREE.PerspectiveCamera(38, W / H, 0.05, 100);
+  const ren = new THREE.WebGLRenderer({ antialias: true });
+  ren.setPixelRatio(Math.min(2, window.devicePixelRatio)); ren.setSize(W, H); host.appendChild(ren.domElement);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 0.9));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.7); sun.position.set(3, 6, 4); scene.add(sun);
+  // path: s -> (x along the ground direction, y up); trough axis 0.375 m above the steel bottom
+  const P = s => { // integrate pitch analytically piecewise
+    let x = 0, y = 0;
+    const seg = (a, b) => { const n = 40; for (let i = 0; i < n; i++) { const u = a + (b - a) * (i + 0.5) / n, th = pitch(u), d = (b - a) / n; x += Math.cos(th) * d; y -= Math.sin(th) * d; } };
+    seg(6.6, s); return [x, y];
+  };
+  const [xl, yl] = P(S_LIP), yOff = LIP_H - yl;
+  const pos = s => { const [x, y] = P(s); return new THREE.Vector3(x - xl, y + yOff, 0); };
+  three = { scene, cam, ren, pos, host };
+  // steel trough (half pipe) and covered tube
+  const steel = new THREE.MeshStandardMaterial({ color: 0xb9c3cc, metalness: 0.75, roughness: 0.32, side: THREE.DoubleSide });
+  const tubeM = new THREE.MeshStandardMaterial({ color: 0x8e99a3, metalness: 0.6, roughness: 0.4, side: THREE.DoubleSide, transparent: true, opacity: 0.35 });
+  const strip = (s0, s1, a0, a1, mat) => {
+    const ns = 60, na = 24, g = new THREE.BufferGeometry(), v = [], idx = [];
+    for (let i = 0; i <= ns; i++) {
+      const s = s0 + (s1 - s0) * i / ns, c = pos(s), th = pitch(s), n = new THREE.Vector3(Math.sin(th), Math.cos(th), 0);
+      const axis = c.clone().add(n.clone().multiplyScalar(R_T));
+      for (let j = 0; j <= na; j++) {
+        const a = a0 + (a1 - a0) * j / na; // a = 0 at the bottom
+        const p = axis.clone().add(n.clone().multiplyScalar(-R_T * Math.cos(a))).add(new THREE.Vector3(0, 0, R_T * Math.sin(a)));
+        v.push(p.x, p.y, p.z);
+      }
+    }
+    for (let i = 0; i < ns; i++) for (let j = 0; j < na; j++) { const a = i * (na + 1) + j, b = a + na + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
+    g.setAttribute("position", new THREE.Float32BufferAttribute(v, 3)); g.setIndex(idx); g.computeVertexNormals();
+    scene.add(new THREE.Mesh(g, mat));
+  };
+  strip(6.6, S_MOUTH, -Math.PI, Math.PI, tubeM);
+  strip(S_MOUTH, S_LIP, -1.75, 1.75, steel);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(30, 12), new THREE.MeshStandardMaterial({ color: 0x8a5a4e, roughness: 0.95 }));
+  ground.rotation.x = -Math.PI / 2; ground.position.set(-4, 0, 0); scene.add(ground);
+  // body: torso, hips, legs, head, arms (feet first, lying on the back/belly, axis along the slide)
+  const body = new THREE.Group(), mat = c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.7 });
+  const cap = (len, r, c, x) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 14), mat(c)); m.rotation.z = Math.PI / 2; m.position.x = x; return m; };
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.22, W_FLAT), mat(0x1d2533)); torso.position.x = -0.35;
+  const vest = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.235, W_FLAT * 0.92), mat(0xc8f02a)); vest.position.x = -0.38;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.11, 16, 12), mat(0xd9a888)); head.position.x = -0.78;
+  const legL = cap(0.92, 0.075, 0x1d2533, 0.40); legL.position.z = 0.09;
+  const legR = cap(0.92, 0.075, 0x1d2533, 0.40); legR.position.z = -0.09;
+  const armL = cap(0.62, 0.05, 0x1d2533, -0.25); armL.position.z = 0.25;
+  const armR = cap(0.62, 0.05, 0x1d2533, -0.25); armR.position.z = -0.25;
+  [torso, vest, head, legL, legR, armL, armR].forEach(m => body.add(m));
+  scene.add(body); three.body = body;
+  three.place = (s, y = null, rollDeg = 0) => {
+    // CoM at s, resting on the bottom; feet ahead (+x is down the slide)
+    const c = pos(Math.min(s, S_LIP)), th = pitch(Math.min(s, S_LIP)), n = new THREE.Vector3(Math.sin(th), Math.cos(th), 0);
+    const p = c.clone().add(n.multiplyScalar(0.13));
+    if (y !== null) { p.x += (s - S_LIP); p.y = y; }
+    body.position.copy(p);
+    body.rotation.set(rollDeg * Math.PI / 180, 0, -th);
+  };
+  const tgt = pos(10.6).add(new THREE.Vector3(0, 0.25, 0));
+  cam.position.copy(tgt.clone().add(new THREE.Vector3(-0.6, 1.9, 2.9))); cam.lookAt(tgt);
+  three.place(S_MOUTH);
+  const loop = () => { requestAnimationFrame(loop); tick(); ren.render(scene, cam); };
+  loop();
+  window.addEventListener("resize", () => { const W2 = host.clientWidth, H2 = host.clientHeight; ren.setSize(W2, H2); cam.aspect = W2 / H2; cam.updateProjectionMatrix(); });
+}
+let anim = null;
+function tick() {
+  if (!anim || !three) return;
+  const t = (performance.now() - anim.t0) / 1000 * anim.rate, r = anim.res;
+  if (t <= r.T[r.T.length - 1]) {
+    const s = interpAt(r.T, r.S, t) ?? r.S[r.S.length - 1];
+    three.place(s, null, anim.roll);
+  } else if (r.out) {
+    const tf = t - r.T[r.T.length - 1], x = S_LIP + r.vExit * tf, y = LIP_H + COM_H - 0.5 * G * tf * tf;
+    if (y > 0.12) three.place(x, y, anim.roll); else anim = null;
+  } else anim = null;
+}
+
+/* ------------------------------------------------------------ state */
+const val = id => +$(id).value;
+function state() {
+  const v0 = val("sV") / KMH, roll = val("sR"), mu = val("sM"), w = wedge(roll);
+  return { v0, roll, mu, w, muEff: mu * w.k };
+}
+function update(play = false) {
+  const st = state(), r = simulate(st.v0, st.muEff);
+  $("vV").textContent = `${val("sV").toFixed(1)} km/h`;
+  $("vR").textContent = `${st.roll}° (${st.roll < 20 ? "lying flat" : st.roll > 70 ? "on the side" : "half rolled"})`;
+  $("vM").textContent = st.mu.toFixed(2);
+  const tile = (tl, tv, tu, tn = "") => `<div class="tile"><div class="tl">${tl}</div><div class="tv">${tv}<span class="tu">${tu}</span></div><div class="tn">${tn}</div></div>`;
+  const dT = r.out ? r.tLip - COP_T : null;
+  $("tiles").innerHTML =
+    tile("Tube mouth → lip", r.out ? r.tLip.toFixed(2) : "stops", r.out ? "s" : "", r.out ? (Math.abs(dT) <= COP_DT ? "= the cop (0.70 s)" : dT < 0 ? `${(-dT).toFixed(2)} s faster than the cop` : `${dT.toFixed(2)} s slower than the cop`) : `at ${r.sStop.toFixed(1)} m`) +
+    tile("Speed off the lip", (r.vExit * KMH).toFixed(1), "km/h", "the cop ≈ 19–24") +
+    tile("Flight before touching down", r.flight.toFixed(1), "m", "") +
+    tile("Effective friction", st.muEff.toFixed(2), "", `${st.mu.toFixed(2)} × ${st.w.k.toFixed(2)} wedging (wall pushes at ${st.w.phi.toFixed(0)}°)`);
+  drawSpeed(st, r);
+  drawMap(st);
+  if (play) anim = { t0: performance.now(), res: r, roll: st.roll, rate: 0.5 };
+  else if (three && !anim) three.place(S_MOUTH, null, st.roll);
+}
+
+/* ------------------------------------------------------------ charts */
+function drawSpeed(st, r) {
+  const series = [{ name: "your settings", label: "you", labelX: 12.2, labelDy: -10, color: SIMC, x: r.S, y: r.V.map(v => v * KMH), width: 3 }];
+  const vC = copV(st.muEff), rc = simulate(vC, st.muEff);
+  series.push({ name: `the cop at your friction: he left the tube at ${(vC * KMH).toFixed(0)} km/h`, label: "the cop", labelX: 9.6, labelDy: -10, color: COPC, x: rc.S, y: rc.V.map(v => v * KMH), width: 2.5, dash: "7 5" });
+  const R = D && D.riders[SEL];
+  if (R) {
+    const s = R.curve.s, v = R.curve.v, m = s.map(x => x >= S_MOUTH);
+    series.push({ name: `${SEL}, measured`, label: SEL, labelX: 10.4, labelDy: 14, color: RIDC, x: s.filter((_, i) => m[i]), y: v.filter((_, i) => m[i]).map(x => x * KMH), width: 2.5 });
+  }
+  legend($("legS"), series.map(s => ({ name: s.name, color: s.color, dash: !!s.dash })));
+  lineChart($("cS"), { series, xLabel: "distance down the slide (m)", yLabel: "speed (km/h)", xDomain: [S_MOUTH, S_LIP], yDomain: [0, 32], yFmt: v => v.toFixed(0),
+    bands: [{ x0: S_MOUTH, x1: S_B0, color: css("--seg-lower"), label: "open trough, 30°" }, { x0: S_B0, x1: S_B1, color: css("--seg-left"), label: "bend" }, { x0: S_B1, x1: S_LIP, color: css("--seg-flat"), label: "flat" }] });
+}
+function drawMap(st) {
+  /* x = speed out of the tube, y = effective friction. The cop's line: every combination
+     that gives his 0.70 s. Below it = faster than the cop. Riders = dots. */
+  const svg = $("cMap"), W = svg.clientWidth || 600, H = +svg.getAttribute("height"), M = { l: 54, r: 14, t: 14, b: 40 };
+  const x0 = 0, x1 = 30, y0 = 0, y1 = 0.62, X = v => M.l + (v - x0) / (x1 - x0) * (W - M.l - M.r), Y = m => H - M.b - (m - y0) / (y1 - y0) * (H - M.t - M.b);
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  let g = "";
+  for (let v = 0; v <= 30; v += 5) g += `<line x1="${X(v)}" x2="${X(v)}" y1="${M.t}" y2="${H - M.b}" stroke="${css("--grid")}"/><text x="${X(v)}" y="${H - M.b + 15}" fill="${css("--text-faint")}" font-size="10" text-anchor="middle">${v}</text>`;
+  for (let m = 0; m <= 0.6; m += 0.1) g += `<line x1="${M.l}" x2="${W - M.r}" y1="${Y(m)}" y2="${Y(m)}" stroke="${css("--grid")}"/><text x="${M.l - 6}" y="${Y(m) + 4}" fill="${css("--text-faint")}" font-size="10" text-anchor="end">${m.toFixed(1)}</text>`;
+  const line = k => (D && D.cop[k] || []).map(([v, m]) => [X(v * KMH), Y(Math.max(y0, m))]);
+  const L = line("line"), Ls = line("line_slow"), Lf = line("line_fast");
+  if (Ls.length && Lf.length) g += `<path d="M${Lf.map(p => p.join(",")).join("L")}L${Ls.slice().reverse().map(p => p.join(",")).join("L")}Z" fill="${COPC}" opacity="0.18"/>`;
+  if (L.length) {
+    g += `<path d="M${L.map(p => p.join(",")).join("L")}" fill="none" stroke="${COPC}" stroke-width="3"/>`;
+    g += `<text x="${L[L.length - 1][0] - 4}" y="${L[L.length - 1][1] - 8}" fill="${COPC}" font-size="11.5" font-weight="600" text-anchor="end">the cop: every combination that gives his 0.70 s</text>`;
+    g += `<text x="${X(26)}" y="${Y(0.05)}" fill="${css("--text-dim")}" font-size="11" text-anchor="middle">↓ below the line: faster than the cop</text>`;
+    g += `<text x="${X(7)}" y="${Y(0.48)}" fill="${css("--text-dim")}" font-size="11" text-anchor="middle">↑ above: slower</text>`;
+  }
+  const RL = (D && D.replicator && D.replicator.line || []).map(([v, m]) => [X(v * KMH), Y(Math.max(y0, m))]);
+  if (RL.length) {
+    g += `<path d="M${RL.map(p => p.join(",")).join("L")}" fill="none" stroke="#2a9d8f" stroke-width="2.5" stroke-dasharray="7 5"/>`;
+    g += `<text x="${RL[RL.length - 1][0] - 4}" y="${RL[0][1] + 16}" fill="#2a9d8f" font-size="11" font-weight="600" text-anchor="start" dx="${RL[0][0] - RL[RL.length - 1][0] + 8}">"wannabe cop" (internet clip, rain suit): 0.75 s</text>`;
+  }
+  g += `<line x1="${M.l}" x2="${W - M.r}" y1="${Y(Math.tan(TH))}" y2="${Y(Math.tan(TH))}" stroke="${css("--text-faint")}" stroke-dasharray="4 4"/><text x="${M.l + 6}" y="${Y(Math.tan(TH)) - 4}" fill="${css("--text-faint")}" font-size="10">stall: friction = gravity</text>`;
+  Object.entries((D && D.riders) || {}).forEach(([n, r]) => {
+    const cx = X(r.v_mouth * KMH), cy = Y(r.mu_eff), sel = n === SEL;
+    const ex0 = X(r.v_mouth_range[0] * KMH), ex1 = X(r.v_mouth_range[1] * KMH), ey0 = Y(r.mu_eff_range[0]), ey1 = Y(r.mu_eff_range[1]);
+    if (sel) g += `<line x1="${ex0}" x2="${ex1}" y1="${cy}" y2="${cy}" stroke="${RIDC}" stroke-width="1.5"/><line x1="${cx}" x2="${cx}" y1="${ey0}" y2="${ey1}" stroke="${RIDC}" stroke-width="1.5"/>`;
+    g += `<circle cx="${cx}" cy="${cy}" r="${sel ? 7 : 5}" fill="${RIDC}" stroke="${css("--panel")}" stroke-width="2" style="cursor:pointer" data-n="${n}"><title>${n}: ${(r.v_mouth * KMH).toFixed(1)} km/h out of the tube, friction ${r.mu_eff.toFixed(2)}</title></circle>`;
+    g += `<text x="${cx + 8}" y="${cy + 4}" fill="${css("--text-dim")}" font-size="${sel ? 11.5 : 10}" ${sel ? 'font-weight="600"' : ""}>${n}</text>`;
+  });
+  g += `<circle cx="${X(st.v0 * KMH)}" cy="${Y(Math.min(y1, st.muEff))}" r="8" fill="none" stroke="${SIMC}" stroke-width="3"/><text x="${X(st.v0 * KMH) + 10}" y="${Y(Math.min(y1, st.muEff)) - 8}" fill="${SIMC}" font-size="11.5" font-weight="600">you</text>`;
+  g += `<text x="${(M.l + W - M.r) / 2}" y="${H - 4}" fill="${css("--text-dim")}" font-size="11" text-anchor="middle">speed coming out of the tube (km/h)</text>`;
+  g += `<text transform="translate(13 ${(M.t + H - M.b) / 2}) rotate(-90)" fill="${css("--text-dim")}" font-size="11" text-anchor="middle">effective friction on the last straight</text>`;
+  svg.innerHTML = g;
+  svg.querySelectorAll("circle[data-n]").forEach(c => c.addEventListener("click", () => preset(c.dataset.n)));
+}
+
+function preset(name) {
+  if (name === "cop") {
+    const v = 4.5; $("sV").value = (v * KMH).toFixed(1); $("sR").value = 0; $("sM").value = Math.max(0, copMu(v) / wedge(0).k).toFixed(2);
+  } else if (D && D.riders[name]) {
+    SEL = name; const r = D.riders[name];
+    $("sV").value = (r.v_mouth * KMH).toFixed(1); $("sR").value = 0; $("sM").value = Math.max(0, r.mu_eff / wedge(0).k).toFixed(2);
+  }
+  document.querySelectorAll("#presets .chip").forEach(b => b.classList.toggle("active", b.dataset.n === name || (name !== "cop" && b.dataset.n === SEL)));
+  update(true);
+}
+
+fetch("data.json?v=" + V).then(r => r.json()).then(d => { D = d; }).catch(() => { D = null; }).finally(() => {
+  const names = D ? Object.keys(D.riders) : [];
+  $("presets").innerHTML = names.map(n => `<button class="chip" data-n="${n}">${n}</button>`).join("") + `<button class="chip" data-n="cop" style="border-color:${COPC};color:${COPC}">the cop</button>`;
+  $("presets").querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => preset(b.dataset.n)));
+  ["sV", "sR", "sM"].forEach(id => $(id).addEventListener("input", () => update(false)));
+  $("play").addEventListener("click", () => update(true));
+  try { initThree(); } catch (e) { $("view").innerHTML = `<p class="notes">3-D view unavailable (${e.message}).</p>`; }
+  preset(names.includes("P12") ? "P12" : (names[0] || "cop"));
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => update(false), 150); });
+});
+
+const FIGS = ["ls_01_fastest_vs_cop.png", "ls_02_what_it_takes.png", "ls_03_what_if.png", "ls_04_body_rotation.png"];
+$("figs").innerHTML = FIGS.map(f => `<a href="../results/${f}?v=${V}" target="_blank" rel="noopener"><figure><img loading="lazy" src="../results/${f}?v=${V}" alt="${f}"></figure></a>`).join("");
+$("gen").textContent = "Built " + V.slice(0, 8);
+</script>
+</body>
+</html>
