@@ -9,8 +9,6 @@ const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).
 const CASES = {
   cop:   { label: "The viral cop", media: "../media/cop.mp4", vid: "cop", note: "News clip (Live Boston, 2023), hand-held and panning: no fixed reference points, so nothing is drawn on it. Video and 3-D replay are synced at the moment his torso leaves the tube mouth." },
   P12:   { label: "P12 (our fastest normal-clothes rider)", media: "../media/P12NC1.mp4", vid: "P12NC1" },
-  P14:   { label: "P14, chest camera", media: "../media/gopro_P14.mp4", vid: "gopro_P14", chest: true, note: "P14's own chest camera (sound removed). It moves with the body, so nothing is drawn on it: it plays synced (at the tube mouth) with the 3-D replay. Try the rider's-view camera." },
-  P02:   { label: "P02, chest camera", media: "../media/gopro_P02.mp4", vid: "gopro_P02", chest: true, note: "P02's own chest camera (sound removed), synced at the tube mouth with the 3-D replay. P02 stopped on the exit flat." },
   Angel: { label: "Angel, cop suit (day 1)", media: "../media/angel_full_suit.mp4", vid: "angel_full_suit" },
   Stef:  { label: "Stef, cop suit (day 1)", media: "../media/stef_full_suit.mp4", vid: "stef_full_suit" },
 };
