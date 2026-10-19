@@ -173,13 +173,13 @@
   </div>
   <h2>Effect of each parameter</h2>
   <p class="notes">Each figure changes one setting and keeps the rest fixed: what to expect when you try it above.</p>
-  <div class="card pfig"><a href="../results/sim_l1_speed.png?v=20261019121816" target="_blank"><img src="../results/sim_l1_speed.png?v=20261019121816" alt="Speed out of the tube" loading="lazy"></a>
+  <div class="card pfig"><a href="../results/sim_l1_speed.png?v=20261019125100" target="_blank"><img src="../results/sim_l1_speed.png?v=20261019125100" alt="Speed out of the tube" loading="lazy"></a>
     <div><h3>Speed out of the tube</h3><p><b>Expected:</b> The time on the last straight depends mostly on how fast you come out of the tube; friction on the straight moves it much less. Only about 18 km/h or more gives the cop's 0.70 s. P12 came out at 12 km/h and needed 1.04 s.</p></div></div>
-  <div class="card pfig"><a href="../results/sim_l2_turns.png?v=20261019121816" target="_blank"><img src="../results/sim_l2_turns.png?v=20261019121816" alt="Friction in the turns" loading="lazy"></a>
+  <div class="card pfig"><a href="../results/sim_l2_turns.png?v=20261019125100" target="_blank"><img src="../results/sim_l2_turns.png?v=20261019125100" alt="Friction in the turns" loading="lazy"></a>
     <div><h3>Friction in the turns</h3><p><b>Expected:</b> Keeping our riders' straight friction, lowering the turn friction from 0.41 (ours) to 0.15 (the cop's) raises the speed out of the tube from 12.5 to 18 km/h and cuts the last straight from 0.98 to 0.76 s. The gap is made in the turns.</p></div></div>
-  <div class="card pfig"><a href="../results/sim_l3_tone.png?v=20261019121816" target="_blank"><img src="../results/sim_l3_tone.png?v=20261019121816" alt="Muscle tone" loading="lazy"></a>
+  <div class="card pfig"><a href="../results/sim_l3_tone.png?v=20261019125100" target="_blank"><img src="../results/sim_l3_tone.png?v=20261019125100" alt="Muscle tone" loading="lazy"></a>
     <div><h3>Muscle tone</h3><p><b>Expected:</b> A limp body (tone 0) twists about 60° at the tube mouth; a body held stiffer twists 18–44°. The time hardly changes (0.68–0.71 s). The cop's big twist on the video is what a fast, relaxed body does.</p></div></div>
-  <div class="card pfig"><a href="../results/sim_l4_posture.png?v=20261019121816" target="_blank"><img src="../results/sim_l4_posture.png?v=20261019121816" alt="Body position" loading="lazy"></a>
+  <div class="card pfig"><a href="../results/sim_l4_posture.png?v=20261019125100" target="_blank"><img src="../results/sim_l4_posture.png?v=20261019125100" alt="Body position" loading="lazy"></a>
     <div><h3>Body position</h3><p><b>Expected:</b> At the same 18 km/h out of the tube every position takes about the same time. Position does not explain the gap on the last straight.</p></div></div>
   <h2>Recorded runs vs the full-body physics</h2>
   <p class="notes">Each case is the 3-D ragdoll calibrated to that run (friction in the turns from the logger's turn time,
@@ -193,7 +193,7 @@
       <p class="notes" id="rpCheck"></p></div>
     <div class="card"><div id="rpView" style="height:330px;border-radius:8px;overflow:hidden"></div>
       <div class="chips" style="margin-top:8px"><button class="chip rpR" data-r="0.25">¼ speed</button><button class="chip rpR active" data-r="0.5">½ speed</button><button class="chip rpR" data-r="1">real time</button>
-        <button class="chip rpC active" data-c="follow">follow</button><button class="chip rpC" data-c="video">camera view</button></div>
+        <button class="chip rpC active" data-c="follow">follow</button><button class="chip rpC" data-c="video">landing camera view</button><button class="chip rpC" data-c="pov">rider's view</button></div>
       <p class="notes" id="rpNote"></p></div>
   </div>
   <div class="tiles" id="rpRead"></div>
@@ -204,15 +204,15 @@
 </main>
 <div class="tip" id="tip"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script type="module" src="body_view.js?v=20261019121816"></script>
-<script type="module" src="body_replay.js?v=20261019121816"></script>
+<script type="module" src="body_view.js?v=20261019125100"></script>
+<script type="module" src="body_replay.js?v=20261019125100"></script>
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const fmt = (v, d = 1) => (v == null || Number.isNaN(v)) ? "—" : (+v).toFixed(d);
 const tip = $("tip");
-const V = "20261019121816";
+const V = "20261019125100";
 /* ------------------------------------------------------------------ chart */
 function niceTicks(lo, hi, n = 5) {
   const span = hi - lo || 1, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));

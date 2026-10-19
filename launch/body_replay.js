@@ -7,8 +7,10 @@ import { slideMesh, GEO, frameAt, sNear } from "./body_sim.js?v=3";
 const $ = id => document.getElementById(id);
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const CASES = {
-  cop:   { label: "The viral cop", note: "His news clip is hand-held (no fixed reference points) and not ours to publish: the 3-D replay and his two measured times are shown instead." },
-  P12:   { label: "P12 (our fastest normal-clothes rider)", note: "Video not published without P12's consent: replay and measured times only." },
+  cop:   { label: "The viral cop", media: "../media/cop.mp4", vid: "cop", note: "News clip (Live Boston, 2023), hand-held and panning: no fixed reference points, so nothing is drawn on it. Video and 3-D replay are synced at the moment his torso leaves the tube mouth." },
+  P12:   { label: "P12 (our fastest normal-clothes rider)", media: "../media/P12NC1.mp4", vid: "P12NC1" },
+  P14:   { label: "P14, chest camera", media: "../media/gopro_P14.mp4", vid: "gopro_P14", chest: true, note: "P14's own chest camera (sound removed). It moves with the body, so nothing is drawn on it: it plays synced (at the tube mouth) with the 3-D replay. Try the rider's-view camera." },
+  P02:   { label: "P02, chest camera", media: "../media/gopro_P02.mp4", vid: "gopro_P02", chest: true, note: "P02's own chest camera (sound removed), synced at the tube mouth with the 3-D replay. P02 stopped on the exit flat." },
   Angel: { label: "Angel, cop suit (day 1)", media: "../media/angel_full_suit.mp4", vid: "angel_full_suit" },
   Stef:  { label: "Stef, cop suit (day 1)", media: "../media/stef_full_suit.mp4", vid: "stef_full_suit" },
 };
@@ -56,7 +58,10 @@ function poseAt(c, t) {
   const p = three.meshes[c.parts.indexOf("pelvis")].position;
   three.s = sNear([p.x, p.y, p.z], three.snap ? GEO.S0 : (three.s ?? GEO.S0));
   const Fr = frameAt(Math.min(three.s, GEO.S_LIP)), axis = three.s <= GEO.S_LIP ? new THREE.Vector3(...Fr.o.map((x, i) => x + Fr.n[i] * GEO.R)) : p.clone();
-  if (CAM === "video") {   // fixed, beside the lower slide looking up it, like the landing cameras
+  if (CAM === "pov") {   // rider's view: from the head, looking down the slide like the chest camera
+    const h = three.meshes[c.parts.indexOf("head")].position, F2 = frameAt(Math.min((three.s ?? GEO.S0) + 1.2, GEO.S_LIP));
+    three.cam.position.set(h.x, h.y + 0.12, h.z); three.cam.lookAt(F2.o[0] + F2.n[0] * GEO.R * 0.6, F2.o[1] + F2.n[1] * GEO.R * 0.6, F2.o[2] + F2.n[2] * GEO.R * 0.6);
+  } else if (CAM === "video") {   // fixed, beside the lower slide looking up it, like the landing cameras
     const A = frameAt(10.6), eye = A.o.map((x, i) => x + A.b[i] * 4.2 - A.t[i] * 2.4), up = [0, 1.3, 0];
     three.cam.position.set(eye[0] + up[0], eye[1] + up[1], eye[2] + up[2]); three.cam.lookAt(A.o[0] - A.t[0] * 0.8, A.o[1] - A.t[1] * 0.8 + 0.2, A.o[2] - A.t[2] * 0.8);
   } else {
@@ -95,7 +100,7 @@ function overlay(c, simT) {
 /* speed vs time: body physics, point model, measured video gates (average over each stretch) */
 function chart(c, simT) {
   const svg = $("rpChart"), W = svg.clientWidth || 600, H = 230, M = { l: 44, r: 12, t: 12, b: 32 };
-  const t0 = c.summary.tMouth != null ? c.summary.tMouth - 1.0 : 0, t1 = (c.summary.tLip ?? c.marks[c.marks.length - 1][0]) + 0.6;
+  const t0 = CASES[CUR].chest ? 0 : c.summary.tMouth != null ? c.summary.tMouth - 1.0 : 0, t1 = (c.summary.tLip ?? c.marks[c.marks.length - 1][0]) + 0.6;
   const X = t => M.l + (t - t0) / (t1 - t0) * (W - M.l - M.r), Y = v => H - M.b - v / 30 * (H - M.t - M.b);
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   let g = "";
@@ -126,10 +131,11 @@ function select(name) {
   const v = $("rpVideo"); cancelAnimationFrame(raf);
   $("rpVidWrap").style.display = meta.media ? "" : "none"; $("rpNote").textContent = meta.note || "";
   if (meta.media) { v.src = meta.media + "?v=" + R.v; v.load();
-    v.onloadedmetadata = () => { v.currentTime = Math.max(0, c.sync.video_t - (c.sync.sim_t - (c.summary.tMouth ?? c.sync.sim_t)) - 0.8); v.playbackRate = RATE; v.play().catch(() => {}); }; }
+    v.onloadedmetadata = () => { v.currentTime = meta.chest ? 0 : Math.max(0, c.sync.video_t - (c.sync.sim_t - (c.summary.tMouth ?? c.sync.sim_t)) - 0.8); v.playbackRate = RATE; v.play().catch(() => {}); }; }
   const chk = $("rpCheck"); chk.textContent = "";
   if (meta.media && c.measured && c.measured[0]) {
-    chk.textContent = "Synced where the video timing starts; friction on the straight was fitted to the measured time over that stretch, "
+    if (!R.videos[name]) chk.textContent = "";
+    else chk.textContent = "Synced where the video timing starts; friction on the straight was fitted to the measured time over that stretch, "
       + "so the timing agrees there by construction. What the overlay tests is everything else: where head, pelvis and feet sit, and when each "
       + "cross turns yellow (the simulation passing it).";
   }
@@ -162,5 +168,6 @@ fetch("replays.json?v=" + (window.V || "")).then(r => r.json()).then(d => {
     document.querySelectorAll(".rpR").forEach(x => x.classList.toggle("active", x === b)); }));
   document.querySelectorAll(".rpC").forEach(b => b.addEventListener("click", () => { CAM = b.dataset.c; three.snap = true;
     document.querySelectorAll(".rpC").forEach(x => x.classList.toggle("active", x === b)); }));
-  select(d.cases.Angel ? "Angel" : Object.keys(d.cases)[0]);
+  const want = new URLSearchParams(location.search).get("replay");
+  select(want && d.cases[want] ? want : d.cases.Angel ? "Angel" : Object.keys(d.cases)[0]);
 }).catch(e => { const el = $("rpNote"); if (el) el.textContent = "Replays unavailable (" + e.message + ")"; });
