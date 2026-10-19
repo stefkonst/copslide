@@ -18,8 +18,8 @@ function initThree() {
   const lamp = new THREE.PointLight(0xa58cff, 0.9, 3.0); scene.add(lamp);      // the rider's leg LEDs light the tube at night
   const add = (part, mat) => { const m = slideMesh(GEO.S0, GEO.S_LIP, part), g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.BufferAttribute(m.vertices, 3)); g.setIndex(new THREE.BufferAttribute(m.indices, 1)); g.computeVertexNormals(); scene.add(new THREE.Mesh(g, mat)); };
-  add("floor", new THREE.MeshStandardMaterial({ color: 0xc3cad0, metalness: 0.5, roughness: 0.3, side: THREE.DoubleSide }));
-  add("roof", new THREE.MeshStandardMaterial({ color: 0x8e99a3, metalness: 0.5, roughness: 0.35, side: THREE.DoubleSide }));
+  add("floor", new THREE.MeshStandardMaterial({ color: 0x5d646b, metalness: 0.5, roughness: 0.3, side: THREE.DoubleSide }));
+  add("roof", new THREE.MeshStandardMaterial({ color: 0x3f454b, metalness: 0.5, roughness: 0.35, side: THREE.DoubleSide }));
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshStandardMaterial({ color: 0x8a7f74, roughness: 0.95 }));
   ground.rotation.x = -Math.PI / 2; scene.add(ground);
   for (let i = 0; i < 14; i++) { const l = new THREE.PointLight(0xfff1d6, 0.6, 14); const F = frameAt(GEO.S_LIP); l.position.set(F.o[0] + (i % 7 - 3) * 3, 5, F.o[2] + (i < 7 ? 6 : -6)); scene.add(l); }   // plaza lights
