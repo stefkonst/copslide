@@ -148,14 +148,14 @@
   </div>
   <h2>All rides at a glance</h2>
   <div class="card"><h3>Every ride ranked by its full descent</h3>
-    <a href="results/an_1_descent_ranking.png?v=20261019133255" target="_blank"><img class="fig" src="results/an_1_descent_ranking.png?v=20261019133255" alt="ranking" loading="lazy"></a>
+    <a href="results/an_1_descent_ranking.png?v=20261019133702" target="_blank"><img class="fig" src="results/an_1_descent_ranking.png?v=20261019133702" alt="ranking" loading="lazy"></a>
     <p class="notes">Average speed from the top of the slope (logger departure) until the rider left the lip or came to rest.
       Leaving the lip: model fitted to the landing video's tube mouth → lip time. Coming to rest: the median of three independent
       estimates (logger goes quiet, GoPro picture goes still, model), with their spread as the error line; "?" = they differ by
       more than 2 s, typically slow riders who crept to a stop. ○ = the model fitted to that ride. The cop's full descent was never
       filmed: his line comes from the speed profiles that reproduce his measured 0.70 s on the last stretch.</p></div>
   <div class="card"><h3>The two best-measured stretches, ranked separately</h3>
-    <a href="results/an_3_two_stretches.png?v=20261019133255" target="_blank"><img class="fig" src="results/an_3_two_stretches.png?v=20261019133255" alt="two stretches" loading="lazy"></a>
+    <a href="results/an_3_two_stretches.png?v=20261019133702" target="_blank"><img class="fig" src="results/an_3_two_stretches.png?v=20261019133702" alt="two stretches" loading="lazy"></a>
     <p class="notes">The full-descent ranking mixes a well-measured part (the turns) with a weak one (when a slow ride really
       ended). Here each stretch is ranked on its own, over the same distance for everyone. Left: the time through the turns,
       from the gyro, with both ends measured (no launch time needed: it can't be pinned from the logger alone). Right: the landing video's tube mouth → lip time, which only riders who reached the lip
@@ -167,8 +167,15 @@
       free fall or landing spike off the lip (the trough is bumpy and the rubber soft), so the two clocks can only be linked to
       about ±0.3–0.5 s. A sync cue that every camera and the logger record (the GO beep next to the landing camera, a clap or a
       flash) would make the whole descent measurable end to end next time.</p></div>
+  <div class="card"><h3>How many g?</h3>
+    <a href="results/an_6_gforce.png?v=20261019133702" target="_blank"><img class="fig" src="results/an_6_gforce.png?v=20261019133702" alt="g-forces" loading="lazy"></a>
+    <p class="notes">Waist logger during each ride (launch to the end). Bars: the peak sustained acceleration (smoothed at 3 Hz,
+      what the whole body feels; 1 g = standing still). Dots: the hardest single knock against the steel. Nobody filmed a logger
+      on the cop, so his value comes from the calibrated full-body simulation with a virtual logger at the waist. The simulation
+      under-reads our riders by a factor 1.0–1.9 (◇ vs bars: its slide is perfectly smooth), so his estimate is scaled the same
+      way: about 5 g, plausibly 4–7 g, at the bend where the slope flattens out.</p></div>
   <div class="card"><h3>Model vs measurement, stretch by stretch</h3>
-    <a href="results/an_2_model_vs_measured.png?v=20261019133255" target="_blank"><img class="fig" src="results/an_2_model_vs_measured.png?v=20261019133255" alt="model vs measured" loading="lazy" style="max-width:640px"></a>
+    <a href="results/an_2_model_vs_measured.png?v=20261019133702" target="_blank"><img class="fig" src="results/an_2_model_vs_measured.png?v=20261019133702" alt="model vs measured" loading="lazy" style="max-width:640px"></a>
     <p class="notes">Each dot is one ride on one stretch: measured average speed (turn timing from the logger, lower straight from
       logger + landing camera, tube mouth → lip from the landing video) against the fitted model on the same stretch. The model
       has three free numbers per ride (push, turn friction, lower friction), so a close match on four stretches is a real check.
@@ -184,15 +191,15 @@
 </main>
 <div class="tip" id="tip"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>window.V = "20261019133255";</script>
-<script type="module" src="chest_replay.js?v=20261019133255"></script>
+<script>window.V = "20261019133702";</script>
+<script type="module" src="chest_replay.js?v=20261019133702"></script>
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const fmt = (v, d = 1) => (v == null || Number.isNaN(v)) ? "—" : (+v).toFixed(d);
 const tip = $("tip");
-const V = "20261019133255";
+const V = "20261019133702";
 /* ------------------------------------------------------------------ chart */
 function niceTicks(lo, hi, n = 5) {
   const span = hi - lo || 1, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
