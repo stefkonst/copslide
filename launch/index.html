@@ -127,19 +127,31 @@
       cop may have been slipperier (anything from 0.10 to 0.40 fits his clip), but that alone can't close the gap.</li>
     <li><b>The gap is made in the turns.</b> To come out of the tube as fast as the cop, P12 would have needed to leave the
       turns at ~16 km/h instead of ~4.</li>
-    <li><b>Posture on the last straight is worth ~5 %</b> (rolling onto the side or moulding into the trough: 1.00 → 0.95 s).
-      A "wannabe cop" in a full rain suit, lying like the cop, did 0.75 s.</li>
+    <li><b>Full-body physics confirms it.</b> The 3-D ragdoll below (contacts and friction on the real trough shape)
+      reproduces P12's measured run (1.06 s vs 1.04 s). With the same speed out of the tube, every posture — on the back,
+      sitting up, on the belly, the cop's legs-up, on the side — takes the last straight within ~3 % of the others;
+      the cop's 0.70 s needs ~18 km/h out of the tube. A "wannabe cop" in a rain suit, lying like the cop, did 0.75 s.</li>
   </ol>
   <p class="notes">Every video time is shown frame by frame in <code>results/gate_checks</code>. Earlier versions used a marker
     that perspective had put ~1 m too far down the trough and over-stated our riders' speeds by ~30 %.</p>
 
   <div class="lab">
     <div class="card"><div id="view"></div>
-      <div class="chips" style="margin-top:8px"><button class="chip" id="play">▶ slide (½ speed)</button></div></div>
+      <div class="chips" style="margin-top:8px"><button class="chip" id="play">▶ run the body physics</button>
+        <button class="chip" id="slow">¼ speed</button><button class="chip" id="real">real time</button></div>
+      <div class="tiles" id="bodyRead" style="margin-top:8px"></div>
+      <p class="notes">Full-body physics (Rapier engine): 11 linked body parts, contacts and Coulomb friction with the real
+        trough shape, flight off the lip and landing on the playground. Rolling, legs swinging and head knocks emerge from the
+        physics — nothing is animated by hand.</p></div>
     <div class="card">
       <h3>Try it</h3>
       <div class="slider"><label>Speed coming out of the tube <b id="vV"></b></label><input id="sV" type="range" min="2" max="30" step="0.5"></div>
-      <div class="slider"><label>Body rotation (0° = flat on back or belly, 90° = on the side) <b id="vR"></b></label><input id="sR" type="range" min="0" max="90" step="1"></div>
+      <div class="slider"><label>Body position at the tube mouth</label>
+        <select id="sP" style="width:100%"><option value="back">lying on the back</option><option value="sitting">sitting up</option>
+          <option value="belly">on the belly, legs straight</option><option value="cop">the cop: on the belly, legs up</option>
+          <option value="side">on the side</option></select></div>
+      <div class="slider"><label>Initial roll spin <b id="vS"></b></label><input id="sS" type="range" min="-2" max="2" step="0.1" value="0"></div>
+      <div class="slider"><label>Friction with the playground ground <b id="vG"></b></label><input id="sG" type="range" min="0.3" max="1.2" step="0.05" value="0.8"></div>
       <div class="slider"><label>Friction of the clothes on the steel <b id="vM"></b></label><input id="sM" type="range" min="0.05" max="0.6" step="0.01"></div>
       <p class="notes">Start from a rider:</p>
       <div class="chips" id="presets"></div>
@@ -157,13 +169,14 @@
 </main>
 <div class="tip" id="tip"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script type="module" src="body_view.js?v=20261019093233"></script>
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const fmt = (v, d = 1) => (v == null || Number.isNaN(v)) ? "—" : (+v).toFixed(d);
 const tip = $("tip");
-const V = "20261018102925";
+const V = "20261019093233";
 /* ------------------------------------------------------------------ chart */
 function niceTicks(lo, hi, n = 5) {
   const span = hi - lo || 1, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
@@ -330,164 +343,18 @@ function copV(muEff, tTarget = COP_T) {
   return hi;
 }
 
-/* ------------------------------------------------------------ 3-D view */
-let three = null;
-function initThree() {
-  const host = $("view"), W = host.clientWidth, H = host.clientHeight;
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(css("--panel") || "#1b2128");
-  const cam = new THREE.PerspectiveCamera(38, W / H, 0.05, 100);
-  const ren = new THREE.WebGLRenderer({ antialias: true });
-  ren.setPixelRatio(Math.min(2, window.devicePixelRatio)); ren.setSize(W, H); host.appendChild(ren.domElement);
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 0.9));
-  const sun = new THREE.DirectionalLight(0xffffff, 0.7); sun.position.set(3, 6, 4); scene.add(sun);
-  // path: s -> (x along the ground direction, y up); trough axis 0.375 m above the steel bottom
-  const P = s => { // integrate pitch analytically piecewise
-    let x = 0, y = 0;
-    const seg = (a, b) => { const n = 40; for (let i = 0; i < n; i++) { const u = a + (b - a) * (i + 0.5) / n, th = pitch(u), d = (b - a) / n; x += Math.cos(th) * d; y -= Math.sin(th) * d; } };
-    seg(6.6, s); return [x, y];
-  };
-  const [xl, yl] = P(S_LIP), yOff = LIP_H - yl;
-  const pos = s => { const [x, y] = P(s); return new THREE.Vector3(x - xl, y + yOff, 0); };
-  three = { scene, cam, ren, pos, host };
-  // steel trough (half pipe) and covered tube
-  const steel = new THREE.MeshStandardMaterial({ color: 0xb9c3cc, metalness: 0.75, roughness: 0.32, side: THREE.DoubleSide });
-  const tubeM = new THREE.MeshStandardMaterial({ color: 0x8e99a3, metalness: 0.6, roughness: 0.4, side: THREE.DoubleSide, transparent: true, opacity: 0.35 });
-  const strip = (s0, s1, a0, a1, mat) => {
-    const ns = 60, na = 24, g = new THREE.BufferGeometry(), v = [], idx = [];
-    for (let i = 0; i <= ns; i++) {
-      const s = s0 + (s1 - s0) * i / ns, c = pos(s), th = pitch(s), n = new THREE.Vector3(Math.sin(th), Math.cos(th), 0);
-      const axis = c.clone().add(n.clone().multiplyScalar(R_T));
-      for (let j = 0; j <= na; j++) {
-        const a = a0 + (a1 - a0) * j / na; // a = 0 at the bottom
-        const p = axis.clone().add(n.clone().multiplyScalar(-R_T * Math.cos(a))).add(new THREE.Vector3(0, 0, R_T * Math.sin(a)));
-        v.push(p.x, p.y, p.z);
-      }
-    }
-    for (let i = 0; i < ns; i++) for (let j = 0; j < na; j++) { const a = i * (na + 1) + j, b = a + na + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
-    g.setAttribute("position", new THREE.Float32BufferAttribute(v, 3)); g.setIndex(idx); g.computeVertexNormals();
-    scene.add(new THREE.Mesh(g, mat));
-  };
-  strip(6.6, S_MOUTH, -Math.PI, Math.PI, tubeM);
-  strip(S_MOUTH, S_LIP, -1.75, 1.75, steel);
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(30, 12), new THREE.MeshStandardMaterial({ color: 0x8a5a4e, roughness: 0.95 }));
-  ground.rotation.x = -Math.PI / 2; ground.position.set(-4, 0, 0); scene.add(ground);
-  /* Articulated body: a chain of joints (feet → knees → hips → waist → shoulders → head) laid along the
-     slide. Every joint rests on the steel at its own distance s along the path, so the body bends at the
-     joints where the slide bends (slope → flat) and never cuts through the shell (on this concave curve the
-     straight segment between two joints lies above the steel). Rolling turns every segment about the
-     slide's axis; the arms fold onto the chest as the body rolls.
-     Cross-section contact solve (body frame: y = out of the back/belly, z = sideways): every part is a
-     circle; after rolling, the body settles at the lowest height where all parts stay inside the trough
-     circle (radius R_T). */
-  const mat = c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.7 });
-  const DARK = 0x1d2533, VEST = 0xc8f02a, SKIN = 0xd9a888, SHOE = 0x9ab4ff;
-  const JOINT = { feet: 0.92, knee: 0.50, hip: 0.08, waist: -0.12, shoulder: -0.50, head: -0.70 };   // m ahead of the CoM
-  const armPose = rr => { const c = Math.abs(Math.cos(rr)), s = Math.abs(Math.sin(rr)); return { y: 0.12 * s + 0.02, z: 0.25 * c + 0.07 * s }; };
-  const parts = rr => {
-    const a = armPose(rr), P = [];
-    for (const zz of [-W_FLAT / 2, W_FLAT / 2]) for (const yy of [-0.11, 0.11]) P.push([zz, yy, 0.0]);   // torso corners
-    for (const zz of [-0.1, 0, 0.1]) for (const yy of [-0.11, 0.11]) P.push([zz, yy, 0.0]);
-    P.push([0, 0, 0.11]);                                     // head
-    P.push([0.09, 0, 0.075], [-0.09, 0, 0.075]);              // legs
-    P.push([a.z, a.y, 0.05], [-a.z, a.y, 0.05]);              // arms
-    const c = Math.cos(rr), s = Math.sin(rr);
-    return P.map(([z, y, r]) => [z * c - y * s, z * s + y * c, r]);
-  };
-  const settle = rr => {
-    const P = parts(rr); let best = null;
-    for (let z0 = -0.25; z0 <= 0.25001; z0 += 0.005) {
-      let y0 = -1, ok = true;
-      for (const [z, y, r] of P) {
-        const dz = z0 + z, lim = R_T - r;
-        if (Math.abs(dz) > lim) { ok = false; break; }
-        y0 = Math.max(y0, R_T - y - Math.sqrt(lim * lim - dz * dz));
-      }
-      if (ok && (!best || y0 < best[1] - 1e-9)) best = [z0, y0];
-    }
-    return best || [0, 0.2];
-  };
-  three.settle = settle;
-  const limb = (r, c) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 1, 14), mat(c)); scene.add(m); return m; };
-  const box = (h, w, c) => { const m = new THREE.Mesh(new THREE.BoxGeometry(1, h, w), mat(c)); scene.add(m); return m; };
-  const B = {
-    shinL: limb(0.055, DARK), shinR: limb(0.055, DARK), thighL: limb(0.075, DARK), thighR: limb(0.075, DARK),
-    footL: new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 10), mat(SHOE)), footR: new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 10), mat(SHOE)),
-    pelvis: box(0.20, W_FLAT * 0.82, DARK), torso: box(0.22, W_FLAT, DARK), vest: box(0.235, W_FLAT * 0.93, VEST),
-    head: new THREE.Mesh(new THREE.SphereGeometry(0.11, 16, 12), mat(SKIN)), armL: limb(0.045, DARK), armR: limb(0.045, DARK),
-  };
-  ["footL", "footR", "head"].forEach(k => scene.add(B[k]));
-  const Y = new THREE.Vector3(0, 1, 0);
-  const setLimb = (m, a, b) => {
-    const d = b.clone().sub(a), L = d.length();
-    m.position.copy(a.clone().add(b).multiplyScalar(0.5)); m.scale.set(1, L, 1);
-    m.quaternion.setFromUnitVectors(Y, d.normalize());
-  };
-  const setBox = (m, a, b, up, side) => {   // box length along a→b, height along up, width along side
-    const d = b.clone().sub(a), L = d.length(), x = d.normalize();
-    const z = side.clone().sub(x.clone().multiplyScalar(side.dot(x))).normalize(), y = z.clone().cross(x);
-    m.position.copy(a.clone().add(b).multiplyScalar(0.5)); m.scale.set(L, 1, 1);
-    m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, z));
-  };
-  /* world point of a body-frame offset (zb sideways, yb out of the back) at path distance s */
-  const frame = (s, rr, z0, y0, fly) => {
-    if (fly) return { at: (zb, yb) => fly.c.clone().add(new THREE.Vector3((s - fly.s), 0, 0))
-        .add(new THREE.Vector3(0, yb * Math.cos(rr) + zb * Math.sin(rr), zb * Math.cos(rr) - yb * Math.sin(rr))),
-      up: new THREE.Vector3(0, Math.cos(rr), -Math.sin(rr)), side: new THREE.Vector3(0, Math.sin(rr), Math.cos(rr)) };
-    const sc = Math.min(Math.max(s, 6.7), S_LIP), th = pitch(sc), c = pos(sc);
-    const n = new THREE.Vector3(Math.sin(th), Math.cos(th), 0), b = new THREE.Vector3(0, 0, 1);
-    const cr = Math.cos(rr), sr = Math.sin(rr);
-    return {
-      at: (zb, yb) => c.clone().add(n.clone().multiplyScalar(y0 + zb * sr + yb * cr)).add(b.clone().multiplyScalar(z0 + zb * cr - yb * sr)),
-      up: n.clone().multiplyScalar(cr).add(b.clone().multiplyScalar(-sr)), side: n.clone().multiplyScalar(sr).add(b.clone().multiplyScalar(cr)),
-    };
-  };
-  three.place = (s, y = null, rollDeg = 0) => {
-    const rr = rollDeg * Math.PI / 180, [z0, y0] = settle(rr), a = armPose(rr);
-    const fly = y !== null ? { s, c: new THREE.Vector3(pos(S_LIP).x + (s - S_LIP), y, z0) } : null;
-    const F = k => frame(s + JOINT[k], rr, z0, y0, fly);
-    const f = { feet: F("feet"), knee: F("knee"), hip: F("hip"), waist: F("waist"), shoulder: F("shoulder"), head: F("head") };
-    for (const [side, zl] of [["L", 0.09], ["R", -0.09]]) {
-      const ft = f.feet.at(zl, 0), kn = f.knee.at(zl, 0), hp = f.hip.at(zl, 0);
-      setLimb(B["shin" + side], kn, ft); setLimb(B["thigh" + side], hp, kn); B["foot" + side].position.copy(ft);
-      const za = side === "L" ? a.z : -a.z;
-      setLimb(B["arm" + side], f.shoulder.at(za, a.y), f.hip.at(za * 0.9, a.y));
-    }
-    setBox(B.pelvis, f.hip.at(0, 0), f.waist.at(0, 0), f.hip.up, f.hip.side);
-    setBox(B.torso, f.waist.at(0, 0), f.shoulder.at(0, 0), f.waist.up, f.waist.side);
-    setBox(B.vest, f.waist.at(0, 0.005), f.shoulder.at(0, 0.005), f.waist.up, f.waist.side);
-    B.head.position.copy(f.head.at(0, 0));
-  };
-  const tgt = pos(10.6).add(new THREE.Vector3(0, 0.25, 0));
-  cam.position.copy(tgt.clone().add(new THREE.Vector3(-0.6, 1.9, 2.9))); cam.lookAt(tgt);
-  three.place(S_MOUTH);
-  const loop = () => { requestAnimationFrame(loop); tick(); ren.render(scene, cam); };
-  loop();
-  window.addEventListener("resize", () => { const W2 = host.clientWidth, H2 = host.clientHeight; ren.setSize(W2, H2); cam.aspect = W2 / H2; cam.updateProjectionMatrix(); });
-}
-let anim = null;
-function tick() {
-  if (!anim || !three) return;
-  const t = (performance.now() - anim.t0) / 1000 * anim.rate, r = anim.res;
-  if (t <= r.T[r.T.length - 1]) {
-    const s = interpAt(r.T, r.S, t) ?? r.S[r.S.length - 1];
-    three.place(s, null, anim.roll);
-  } else if (r.out) {
-    const tf = t - r.T[r.T.length - 1], x = S_LIP + r.vExit * tf, y = LIP_H + COM_H - 0.5 * G * tf * tf;
-    if (y > 0.12) three.place(x, y, anim.roll); else anim = null;
-  } else anim = null;
-}
-
 /* ------------------------------------------------------------ state */
 const val = id => +$(id).value;
+const POSTURE_ROLL = { back: 0, sitting: 0, belly: 0, cop: 0, side: 90 };   // for the point model's wedging
 function state() {
-  const v0 = val("sV") / KMH, roll = val("sR"), mu = val("sM"), w = wedge(roll);
-  return { v0, roll, mu, w, muEff: mu * w.k };
+  const v0 = val("sV") / KMH, roll = POSTURE_ROLL[$("sP").value] ?? 0, mu = val("sM"), w = wedge(roll);
+  return { v0, roll, mu, w, muEff: mu };   // the body physics handles wall pressing itself
 }
 function update(play = false) {
   const st = state(), r = simulate(st.v0, st.muEff);
   $("vV").textContent = `${val("sV").toFixed(1)} km/h`;
-  $("vR").textContent = `${st.roll}° (${st.roll < 20 ? "lying flat" : st.roll > 70 ? "on the side" : "half rolled"})`;
+  $("vS").textContent = `${val("sS").toFixed(1)} turns/s`;
+  $("vG").textContent = val("sG").toFixed(2);
   $("vM").textContent = st.mu.toFixed(2);
   const tile = (tl, tv, tu, tn = "") => `<div class="tile"><div class="tl">${tl}</div><div class="tv">${tv}<span class="tu">${tu}</span></div><div class="tn">${tn}</div></div>`;
   const dT = r.out ? r.tLip - COP_T : null;
@@ -497,11 +364,10 @@ function update(play = false) {
     tile("Flight before touching down", r.flight.toFixed(1), "m", "") +
     ((D && D.riders[SEL]) ? tile(`${SEL}, measured on video`, D.riders[SEL].t_mouth_lip_feet_measured.toFixed(2), "s",
       `tube mouth → lip (feet) · model ${D.riders[SEL].t_mouth_lip ? D.riders[SEL].t_mouth_lip.toFixed(2) : "—"} s`) : "") +
-    tile("Effective friction", st.muEff.toFixed(2), "", `${st.mu.toFixed(2)} × ${st.w.k.toFixed(2)} wedging (wall pushes at ${st.w.phi.toFixed(0)}°)`);
+    tile("Friction (point model)", st.muEff.toFixed(2), "", "the 3-D body physics adds wall pressing itself");
   drawSpeed(st, r);
   drawMap(st);
-  if (play) anim = { t0: performance.now(), res: r, roll: st.roll, rate: 0.5 };
-  else if (three && !anim) three.place(S_MOUTH, null, st.roll);
+  if (play && window.BODY) window.BODY.run();
 }
 
 /* ------------------------------------------------------------ charts */
@@ -558,10 +424,11 @@ function drawMap(st) {
 
 function preset(name) {
   if (name === "cop") {
-    const v = 4.5; $("sV").value = (v * KMH).toFixed(1); $("sR").value = 0; $("sM").value = Math.max(0, copMu(v) / wedge(0).k).toFixed(2);
+    // calibrated in the body physics: cop posture, 18 km/h out of the tube, friction 0.15 → his 0.70 s
+    $("sV").value = 18; $("sP").value = "cop"; $("sM").value = 0.15;
   } else if (D && D.riders[name]) {
     SEL = name; const r = D.riders[name];
-    $("sV").value = (r.v_mouth * KMH).toFixed(1); $("sR").value = 0; $("sM").value = Math.max(0, r.mu_eff / wedge(0).k).toFixed(2);
+    $("sV").value = (r.v_mouth * KMH).toFixed(1); $("sP").value = "back"; $("sM").value = r.mu_eff.toFixed(2);
   }
   document.querySelectorAll("#presets .chip").forEach(b => b.classList.toggle("active", b.dataset.n === name || (name !== "cop" && b.dataset.n === SEL)));
   update(true);
@@ -571,16 +438,11 @@ fetch("data.json?v=" + V).then(r => r.json()).then(d => { D = d; }).catch(() => 
   const names = D ? Object.keys(D.riders) : [];
   $("presets").innerHTML = names.map(n => `<button class="chip" data-n="${n}">${n}</button>`).join("") + `<button class="chip" data-n="cop" style="border-color:${COPC};color:${COPC}">the cop</button>`;
   $("presets").querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => preset(b.dataset.n)));
-  ["sV", "sR", "sM"].forEach(id => $(id).addEventListener("input", () => update(false)));
+  ["sV", "sM", "sS", "sG"].forEach(id => $(id).addEventListener("input", () => update(false)));
+  $("sP").addEventListener("change", () => update(false));
   $("play").addEventListener("click", () => update(true));
-  try { initThree(); } catch (e) { $("view").innerHTML = `<p class="notes">3-D view unavailable (${e.message}).</p>`; }
-  preset(names.includes("P12") ? "P12" : (names[0] || "cop"));
-  const q = new URLSearchParams(location.search);
-  if (q.get("roll") !== null) { anim = null; $("sR").value = q.get("roll"); update(false); }
-  if (q.get("close") !== null && three) {   // debug view: ?close&at=11.2&roll=45
-    const at = +(q.get("at") || 10.2), t2 = three.pos(at).add(new THREE.Vector3(0, 0.3, 0));
-    three.cam.position.copy(t2.clone().add(new THREE.Vector3(0.2, 0.9, 1.6))); three.cam.lookAt(t2); anim = null; three.place(at, null, +q.get("roll") || 0);
-  }
+  window.LAUNCH_READY = true;
+  preset(new URLSearchParams(location.search).get("rider") || (names.includes("P12") ? "P12" : (names[0] || "cop")));
   let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => update(false), 150); });
 });
 
