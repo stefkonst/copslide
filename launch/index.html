@@ -127,10 +127,12 @@
       cop may have been slipperier (anything from 0.10 to 0.40 fits his clip), but that alone can't close the gap.</li>
     <li><b>The gap is made in the turns.</b> To come out of the tube as fast as the cop, P12 would have needed to leave the
       turns at ~16 km/h instead of ~4.</li>
-    <li><b>Full-body physics confirms it.</b> The 3-D ragdoll below (contacts and friction on the real trough shape)
-      reproduces P12's measured run (1.06 s vs 1.04 s). With the same speed out of the tube, every posture — on the back,
-      sitting up, on the belly, the cop's legs-up, on the side — takes the last straight within ~3 % of the others;
-      the cop's 0.70 s needs ~18 km/h out of the tube. A "wannabe cop" in a rain suit, lying like the cop, did 0.75 s.</li>
+    <li><b>Full-body physics from the top of the turns confirms it.</b> Calibrated to each run, the 3-D ragdoll reproduces
+      P12, Angel and Stef (Stef even stops on the flat, as on her video). The cop's run needs friction 0.13 all the way: he
+      leaves the turns at 13 km/h (ours at 6) and reaches the tube mouth 26° up the wall, twisted 35°.</li>
+    <li><b>The swing and twist in his video are a consequence of speed, not a trick.</b> At our riders' speeds the same
+      body stays at the bottom and twists under 10°; at the cop's speed it rides up the wall and twists up to 60°. A
+      "wannabe cop" in a rain suit, lying like the cop, did 0.75 s.</li>
   </ol>
   <p class="notes">Every video time is shown frame by frame in <code>results/gate_checks</code>. Earlier versions used a marker
     that perspective had put ~1 m too far down the trough and over-stated our riders' speeds by ~30 %.</p>
@@ -150,6 +152,11 @@
         <select id="sP" style="width:100%"><option value="back">lying on the back</option><option value="sitting">sitting up</option>
           <option value="belly">on the belly, legs straight</option><option value="cop">the cop: on the belly, legs up</option>
           <option value="side">on the side</option></select></div>
+      <div class="slider"><label>3-D physics starts at</label>
+        <select id="sStart" style="width:100%"><option value="turns">the top of the turns (realistic swing and twist)</option><option value="mouth">the tube mouth</option></select></div>
+      <div class="slider"><label>Speed entering the turns (3-D, from the top) <b id="vV0"></b></label><input id="sV0" type="range" min="2" max="15" step="0.5" value="5.8"></div>
+      <div class="slider"><label>Friction in the turns (3-D) <b id="vMT"></b></label><input id="sMT" type="range" min="0.05" max="0.6" step="0.01" value="0.40"></div>
+      <div class="slider"><label>Muscle tone (0 = limp, 1 = tense) <b id="vT"></b></label><input id="sT" type="range" min="0" max="1" step="0.05" value="0.3"></div>
       <div class="slider"><label>Initial roll spin <b id="vS"></b></label><input id="sS" type="range" min="-2" max="2" step="0.1" value="0"></div>
       <div class="slider"><label>Friction with the playground ground <b id="vG"></b></label><input id="sG" type="range" min="0.3" max="1.2" step="0.05" value="0.8"></div>
       <div class="slider"><label>Friction of the clothes on the steel <b id="vM"></b></label><input id="sM" type="range" min="0.05" max="0.6" step="0.01"></div>
@@ -163,20 +170,36 @@
     <div class="card"><h3>What it takes to match the cop</h3><svg class="chart" id="cMap" height="330"></svg>
       <p class="notes">Dots: our riders who shot off (fitted from the landing video + logger; lines = ±1σ for the selected one). Click a dot to load it.</p></div>
   </div>
+  <h2>Recorded runs vs the full-body physics</h2>
+  <p class="notes">Each case is the 3-D ragdoll calibrated to that run (friction in the turns from the logger's turn time,
+    on the straight from the video). On the video, the simulated head, pelvis and feet are drawn on top, placed along the
+    slide with the same reference points used to time the video: if they sit on the rider, the timing is right.</p>
+  <div class="chips" id="rpChips"></div>
+  <div class="lab">
+    <div class="card" id="rpVidWrap" style="position:relative"><video id="rpVideo" controls playsinline muted style="width:100%;display:block;border-radius:6px;background:#000"></video>
+      <canvas id="rpOver" style="position:absolute;left:14px;top:14px;pointer-events:none"></canvas>
+      <div class="slider"><label>Overlay opacity</label><input id="rpAlpha" type="range" min="0" max="1" step="0.05" value="0.75"></div></div>
+    <div class="card"><div id="rpView" style="height:330px;border-radius:8px;overflow:hidden"></div>
+      <div class="slider"><label>Replay speed (when there is no video)</label><input id="rpRate" type="range" min="0.1" max="1" step="0.05" value="0.35"></div>
+      <p class="notes" id="rpNote"></p></div>
+  </div>
+  <div class="tiles" id="rpRead"></div>
+  <div class="card"><h3>Speed: body physics vs point model vs video</h3><svg class="chart" id="rpChart" height="230"></svg></div>
   <div class="gallery" id="figs"></div>
   <details class="more"><summary>Physics and assumptions</summary><ul><li>(all used below; the web page lists the same)</li><li>slide 30.0 deg slope (measured), lower straight ends at s = 11.05 m, the slope eases to the flat over 0.40 m (11.05-11.45), flat to the lip at 12.75 m, lip 0.55 m above the ground. Trough = circular arc, radius 0.375 m (0.75 m opening, measured). Covered tube 7.05-8.80 m; the open trough length (2.25 m, 2.0-2.5) is fitted from the riders' videos (trough_length.py).</li><li>body a rigid body sliding along the trough axis, treated as a point at its centre of mass (CoM) for the equation of motion. Feet-first riders: CoM 0.90 m behind the feet; the cop's vest (chest) is taken as his CoM (+-0.3 m, affects only where the slope->flat bend is felt). Mass cancels out except in air drag (75 kg used).</li><li>contact the body rests on the trough wall at its two outer edges (rigid shoulders/hips). For a contact width w in a trough of radius R the wall pushes at angle phi from straight down, sin(phi) = w / 2R, so the total pressing force is the weight component / cos(phi) ("wedging"). Contact width: lying flat (back or belly) 0.42 m (shoulders), on the side 0.24 m (body depth), in between w = 0.42|cos r| + 0.24|sin r|. A soft body that moulds into the curve wedges less: the rigid-edge value is an upper bound, 1.0 the lower bound.</li><li>friction mu = fabric on steel, constant along the stretch and with speed (Coulomb). mu_eff = mu * wedge factor is what the videos measure.</li><li>air drag 1/2 rho Cd A v^2, rho = 1.2 kg/m3, Cd*A = 0.12 m2 lying feet first, 0.40 m2 sitting up. Below 1 % of gravity at these speeds.</li><li>bend the slope->flat bend presses the body down by v^2 * curvature (curvature = 30 deg / 0.40 m): extra friction while turning flat.</li><li>flight leaves the lip horizontally; CoM 0.67 m above the ground; flight distance = v_exit * sqrt(2 h / g).</li><li>data riders: leading shoe at the tube mouth, the slope->flat bend and the lip (physical features only), read frame by frame at 30 fps (+-0.035 s, mouth up to +-0.1 s; results/gate_checks), plus the logger's speed leaving the turns (+-20 %); fitted jointly as one ride. Cop: torso out of the tube mouth and over the lip, effectively 15 fps (63 of 168 frames are duplicates): 0.70 +- 0.067 s. "Wannabe cop" internet clip (rain suit, same posture): 0.75 +- 0.07 s, read the same way.</li><li>limits mu_eff >= 0.10 (clothes on steel). The fits want riders leaving the turns ~30-50 % faster than the logger reads: the logger's turn-exit speed is likely low (it is a model value at the end of the turns).</li></ul></details>
   <p class="notes" id="gen"></p>
 </main>
 <div class="tip" id="tip"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script type="module" src="body_view.js?v=20261019093233"></script>
+<script type="module" src="body_view.js?v=20261019102942"></script>
+<script type="module" src="body_replay.js?v=20261019102942"></script>
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const fmt = (v, d = 1) => (v == null || Number.isNaN(v)) ? "—" : (+v).toFixed(d);
 const tip = $("tip");
-const V = "20261019093233";
+const V = "20261019102942";
 /* ------------------------------------------------------------------ chart */
 function niceTicks(lo, hi, n = 5) {
   const span = hi - lo || 1, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
@@ -354,6 +377,7 @@ function update(play = false) {
   const st = state(), r = simulate(st.v0, st.muEff);
   $("vV").textContent = `${val("sV").toFixed(1)} km/h`;
   $("vS").textContent = `${val("sS").toFixed(1)} turns/s`;
+  $("vV0").textContent = `${val("sV0").toFixed(1)} km/h`; $("vMT").textContent = val("sMT").toFixed(2); $("vT").textContent = val("sT").toFixed(2);
   $("vG").textContent = val("sG").toFixed(2);
   $("vM").textContent = st.mu.toFixed(2);
   const tile = (tl, tv, tu, tn = "") => `<div class="tile"><div class="tl">${tl}</div><div class="tv">${tv}<span class="tu">${tu}</span></div><div class="tn">${tn}</div></div>`;
@@ -425,10 +449,11 @@ function drawMap(st) {
 function preset(name) {
   if (name === "cop") {
     // calibrated in the body physics: cop posture, 18 km/h out of the tube, friction 0.15 → his 0.70 s
-    $("sV").value = 18; $("sP").value = "cop"; $("sM").value = 0.15;
+    // calibrated in the full-body physics from the top of the turns: posture "cop", friction 0.13 everywhere
+    $("sV").value = 18; $("sP").value = "cop"; $("sM").value = 0.13; $("sMT").value = 0.13; $("sV0").value = 5.8; $("sStart").value = "turns";
   } else if (D && D.riders[name]) {
     SEL = name; const r = D.riders[name];
-    $("sV").value = (r.v_mouth * KMH).toFixed(1); $("sP").value = "back"; $("sM").value = r.mu_eff.toFixed(2);
+    $("sV").value = (r.v_mouth * KMH).toFixed(1); $("sP").value = "back"; $("sM").value = r.mu_eff.toFixed(2); $("sMT").value = 0.41; $("sV0").value = 5.8;
   }
   document.querySelectorAll("#presets .chip").forEach(b => b.classList.toggle("active", b.dataset.n === name || (name !== "cop" && b.dataset.n === SEL)));
   update(true);
@@ -438,7 +463,8 @@ fetch("data.json?v=" + V).then(r => r.json()).then(d => { D = d; }).catch(() => 
   const names = D ? Object.keys(D.riders) : [];
   $("presets").innerHTML = names.map(n => `<button class="chip" data-n="${n}">${n}</button>`).join("") + `<button class="chip" data-n="cop" style="border-color:${COPC};color:${COPC}">the cop</button>`;
   $("presets").querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => preset(b.dataset.n)));
-  ["sV", "sM", "sS", "sG"].forEach(id => $(id).addEventListener("input", () => update(false)));
+  ["sV", "sM", "sS", "sG", "sV0", "sMT", "sT"].forEach(id => $(id).addEventListener("input", () => update(false)));
+  $("sStart").addEventListener("change", () => update(false));
   $("sP").addEventListener("change", () => update(false));
   $("play").addEventListener("click", () => update(true));
   window.LAUNCH_READY = true;

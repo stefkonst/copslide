@@ -1,6 +1,6 @@
 /* 3-D view of the full-body physics on the Launch page (three.js r128 is loaded globally as THREE). */
 import RAPIER from "https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.14.0/rapier.es.js";
-import { createSim, slideMesh, pointModel, POSTURES, GEO, at, sOfX } from "./body_sim.js?v=1";
+import { createSim, slideMesh, pointModel, POSTURES, GEO, frameAt } from "./body_sim.js?v=2";
 
 const $ = id => document.getElementById(id);
 const KMH = 3.6, COP_T = 0.70;
@@ -16,16 +16,16 @@ const sun = new THREE.DirectionalLight(0xffffff, 0.75); sun.position.set(2, 6, 5
 
 // slide (same mesh the physics uses) and playground
 {
-  const add = (part, mat) => { const m = slideMesh(true, part), g = new THREE.BufferGeometry();
+  const add = (part, mat) => { const m = slideMesh(GEO.S0, GEO.S_LIP, part), g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.BufferAttribute(m.vertices, 3)); g.setIndex(new THREE.BufferAttribute(m.indices, 1)); g.computeVertexNormals();
     scene.add(new THREE.Mesh(g, mat)); };
   add("floor", new THREE.MeshStandardMaterial({ color: 0xb9c3cc, metalness: 0.7, roughness: 0.35, side: THREE.DoubleSide }));
   add("roof", new THREE.MeshStandardMaterial({ color: 0x8e99a3, metalness: 0.5, roughness: 0.4, side: THREE.DoubleSide, transparent: true, opacity: 0.18, depthWrite: false }));
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(40, 16), new THREE.MeshStandardMaterial({ color: 0x8a5a4e, roughness: 0.95 }));
-  ground.rotation.x = -Math.PI / 2; ground.position.set(4, 0, 0); scene.add(ground);
-  const [xm, ym] = at(GEO.S_MOUTH);   // tube-mouth ring
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshStandardMaterial({ color: 0x8a5a4e, roughness: 0.95 }));
+  ground.rotation.x = -Math.PI / 2; scene.add(ground);
+  const Fm = frameAt(GEO.S_MOUTH);   // tube-mouth ring
   const ring = new THREE.Mesh(new THREE.TorusGeometry(GEO.R, 0.015, 8, 40), new THREE.MeshStandardMaterial({ color: 0x8e99a3 }));
-  ring.position.set(xm + Math.sin(GEO.TH) * GEO.R, ym + Math.cos(GEO.TH) * GEO.R, 0); ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(Math.cos(GEO.TH), -Math.sin(GEO.TH), 0)); scene.add(ring);
+  ring.position.set(...Fm.o.map((x, i) => x + Fm.n[i] * GEO.R)); ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(...Fm.t)); scene.add(ring);
 }
 
 let RAP = null, sim = null, meshes = {}, rate = 0.5, acc = 0, last = 0, camT = new THREE.Vector3();
@@ -51,8 +51,8 @@ function sync() {
     meshes[k].position.set(t.x, t.y, t.z); meshes[k].quaternion.set(q.x, q.y, q.z, q.w);
   }
   const c = sim.com();
-  camT.lerp(new THREE.Vector3(c.x, c.y, 0), 0.15);
-  cam.position.set(camT.x - 0.9, camT.y + 1.05, 1.55); cam.lookAt(camT);
+  camT.lerp(new THREE.Vector3(c.x, c.y, c.z), 0.15);
+  cam.position.set(camT.x - 1.0, camT.y + 1.15, camT.z + 1.6); cam.lookAt(camT);
 }
 function readouts(final) {
   const st = sim.state(), f = (x, d = 2) => x == null ? "—" : x.toFixed(d);
@@ -62,15 +62,16 @@ function readouts(final) {
   $("bodyRead").innerHTML =
     tile("Tube mouth → lip (body)", f(tml), tml != null ? "s" : "", tml != null ? (tml <= COP_T + 0.067 ? "as fast as the cop (0.70 s)" : `${f(tml - COP_T)} s slower than the cop`) + (pm && pm.t ? ` · point model ${f(pm.t)} s` : "") : (final ? "did not reach the lip" : "running…")) +
     tile("Speed off the lip", st.vLip != null ? f(st.vLip * KMH, 1) : "—", "km/h", st.vMouth != null ? `in at the mouth ${f(st.vMouth * KMH, 1)} km/h` : "") +
-    tile("Body rolled", f(st.rollMax * 57.3, 0), "°", `head hits on the walls: ${st.headHits}` + (st.headHits ? ` (up to ${f(st.headMaxKmh, 0)} km/h)` : "")) +
-    tile("Slid on the playground", st.restX != null && st.landX != null ? f(st.restX - st.landX, 1) : "—", "m", st.landX != null ? `landed ${f(st.landX, 1)} m past the lip` : "");
+    tile("Body twisted", f(st.rollMax * 57.3, 0), "°", (st.wallAtMouth != null ? `${f(Math.abs(st.wallAtMouth), 0)}° up the wall at the mouth · ` : "") + `head hits: ${st.headHits}` + (st.headHits ? ` (up to ${f(st.headMaxKmh, 0)} km/h)` : "")) +
+    tile("Slid on the playground", st.restD != null ? f(st.restD, 1) : "—", "m", st.landX != null ? `landed ${f(st.landX, 1)} m from the lip` : (st.vTurnsEnd != null ? `left the turns at ${f(st.vTurnsEnd * KMH, 1)} km/h` : ""));
 }
 function run() {
   if (!RAP) return;
-  const v = +$("sV").value / KMH;
-  sim = createSim(RAP, { v0: v, mu: +$("sM").value, muGround: +$("sG").value, posture: $("sP").value,
-                         spin: +$("sS").value * 2 * Math.PI, s0: GEO.S_MOUTH - 0.25 });
-  buildMeshes(); camT.set(...(() => { const c = sim.com(); return [c.x, c.y, 0]; })()); sync(); readouts(false); acc = 0;
+  const fromTurns = $("sStart").value === "turns";
+  sim = createSim(RAP, { v0: (fromTurns ? +$("sV0").value : +$("sV").value) / KMH, mu: +$("sM").value, muTurns: +$("sMT").value,
+                         muGround: +$("sG").value, posture: $("sP").value, tone: +$("sT").value,
+                         spin: +$("sS").value * 2 * Math.PI, s0: fromTurns ? 3.35 : GEO.S_MOUTH - 0.25 });
+  buildMeshes(); camT.set(...(() => { const c = sim.com(); return [c.x, c.y, c.z]; })()); sync(); readouts(false); acc = 0;
 }
 function loop(now) {
   requestAnimationFrame(loop);
