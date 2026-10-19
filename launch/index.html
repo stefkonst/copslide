@@ -131,7 +131,7 @@
     <li><b>The gap is made in the turns.</b> To come out of the tube as fast as the cop, P12 would have needed to leave the
       turns at ~16 km/h instead of ~4.</li>
     <li><b>Full-body physics from the top of the turns confirms it.</b> Calibrated to each run, the 3-D ragdoll reproduces
-      P12, Angel and Stef (Stef even stops on the flat, as on her video). The cop's run needs friction 0.14 all the way with a relaxed body: he leaves the turns at 13 km/h (ours at 6) and reaches the tube mouth twisted 82°, legs flying.</li>
+      P12, Angel and Stef (Stef slides off the end slowly, at about 3 km/h, as on the video). The cop's run needs friction 0.15 all the way with a relaxed body: he leaves the turns at 13 km/h (ours at 6) and reaches the tube mouth twisted 82°, legs flying.</li>
     <li><b>The swing and twist in his video are a consequence of speed, not a trick.</b> At our riders' speeds the same
       body stays at the bottom and twists under 10°; at the cop's speed a relaxed body swings up the walls and twists 80–90° — like in his video. Held stiff, it twists only ~40°, so he was probably loose. A "wannabe cop" in a rain suit, lying like the cop, did 0.75 s.</li>
   </ol>
@@ -173,13 +173,13 @@
   </div>
   <h2>Effect of each parameter</h2>
   <p class="notes">Each figure changes one setting and keeps the rest fixed: what to expect when you try it above.</p>
-  <div class="card pfig"><a href="../results/sim_l1_speed.png?v=20261019113940" target="_blank"><img src="../results/sim_l1_speed.png?v=20261019113940" alt="Speed out of the tube" loading="lazy"></a>
+  <div class="card pfig"><a href="../results/sim_l1_speed.png?v=20261019121816" target="_blank"><img src="../results/sim_l1_speed.png?v=20261019121816" alt="Speed out of the tube" loading="lazy"></a>
     <div><h3>Speed out of the tube</h3><p><b>Expected:</b> The time on the last straight depends mostly on how fast you come out of the tube; friction on the straight moves it much less. Only about 18 km/h or more gives the cop's 0.70 s. P12 came out at 12 km/h and needed 1.04 s.</p></div></div>
-  <div class="card pfig"><a href="../results/sim_l2_turns.png?v=20261019113940" target="_blank"><img src="../results/sim_l2_turns.png?v=20261019113940" alt="Friction in the turns" loading="lazy"></a>
-    <div><h3>Friction in the turns</h3><p><b>Expected:</b> Keeping our riders' straight friction, lowering the turn friction from 0.41 (ours) to 0.14 (the cop's) raises the speed out of the tube from 12.5 to 18 km/h and cuts the last straight from 0.98 to 0.76 s. The gap is made in the turns.</p></div></div>
-  <div class="card pfig"><a href="../results/sim_l3_tone.png?v=20261019113940" target="_blank"><img src="../results/sim_l3_tone.png?v=20261019113940" alt="Muscle tone" loading="lazy"></a>
+  <div class="card pfig"><a href="../results/sim_l2_turns.png?v=20261019121816" target="_blank"><img src="../results/sim_l2_turns.png?v=20261019121816" alt="Friction in the turns" loading="lazy"></a>
+    <div><h3>Friction in the turns</h3><p><b>Expected:</b> Keeping our riders' straight friction, lowering the turn friction from 0.41 (ours) to 0.15 (the cop's) raises the speed out of the tube from 12.5 to 18 km/h and cuts the last straight from 0.98 to 0.76 s. The gap is made in the turns.</p></div></div>
+  <div class="card pfig"><a href="../results/sim_l3_tone.png?v=20261019121816" target="_blank"><img src="../results/sim_l3_tone.png?v=20261019121816" alt="Muscle tone" loading="lazy"></a>
     <div><h3>Muscle tone</h3><p><b>Expected:</b> A limp body (tone 0) twists about 60° at the tube mouth; a body held stiffer twists 18–44°. The time hardly changes (0.68–0.71 s). The cop's big twist on the video is what a fast, relaxed body does.</p></div></div>
-  <div class="card pfig"><a href="../results/sim_l4_posture.png?v=20261019113940" target="_blank"><img src="../results/sim_l4_posture.png?v=20261019113940" alt="Body position" loading="lazy"></a>
+  <div class="card pfig"><a href="../results/sim_l4_posture.png?v=20261019121816" target="_blank"><img src="../results/sim_l4_posture.png?v=20261019121816" alt="Body position" loading="lazy"></a>
     <div><h3>Body position</h3><p><b>Expected:</b> At the same 18 km/h out of the tube every position takes about the same time. Position does not explain the gap on the last straight.</p></div></div>
   <h2>Recorded runs vs the full-body physics</h2>
   <p class="notes">Each case is the 3-D ragdoll calibrated to that run (friction in the turns from the logger's turn time,
@@ -204,15 +204,15 @@
 </main>
 <div class="tip" id="tip"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script type="module" src="body_view.js?v=20261019113940"></script>
-<script type="module" src="body_replay.js?v=20261019113940"></script>
+<script type="module" src="body_view.js?v=20261019121816"></script>
+<script type="module" src="body_replay.js?v=20261019121816"></script>
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const fmt = (v, d = 1) => (v == null || Number.isNaN(v)) ? "—" : (+v).toFixed(d);
 const tip = $("tip");
-const V = "20261019113940";
+const V = "20261019121816";
 /* ------------------------------------------------------------------ chart */
 function niceTicks(lo, hi, n = 5) {
   const span = hi - lo || 1, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
@@ -463,7 +463,7 @@ function preset(name) {
   if (name === "cop") {
     // calibrated in the body physics: cop posture, 18 km/h out of the tube, friction 0.15 → his 0.70 s
     // calibrated in the full-body physics from the top of the turns: posture "cop", friction 0.13 everywhere
-    $("sV").value = 18; $("sP").value = "cop"; $("sM").value = 0.14; $("sMT").value = 0.14; $("sV0").value = 5.8; $("sStart").value = "turns"; $("sT").value = 0;
+    $("sV").value = 18; $("sP").value = "cop"; $("sM").value = 0.15; $("sMT").value = 0.15; $("sV0").value = 5.8; $("sStart").value = "turns"; $("sT").value = 0;
   } else if (D && D.riders[name]) {
     SEL = name; const r = D.riders[name];
     $("sV").value = (r.v_mouth * KMH).toFixed(1); $("sP").value = "back"; $("sM").value = r.mu_eff.toFixed(2); $("sMT").value = 0.41; $("sV0").value = 5.8;

@@ -126,6 +126,33 @@
     <div id="bars"></div>
   </div>
   <div id="runView"></div>
+  <h2>All rides at a glance</h2>
+  <div class="card"><h3>Every ride ranked by its full descent</h3>
+    <a href="results/an_1_descent_ranking.png?v=20261019121817" target="_blank"><img class="fig" src="results/an_1_descent_ranking.png?v=20261019121817" alt="ranking" loading="lazy"></a>
+    <p class="notes">Average speed from the top of the slope (logger departure) until the rider left the lip or came to rest.
+      Leaving the lip: model fitted to the landing video's tube mouth → lip time. Coming to rest: the median of three independent
+      estimates (logger goes quiet, GoPro picture goes still, model), with their spread as the error line; "?" = they differ by
+      more than 2 s, typically slow riders who crept to a stop. ○ = the model fitted to that ride. The cop's full descent was never
+      filmed: his line comes from the speed profiles that reproduce his measured 0.70 s on the last stretch.</p></div>
+  <div class="card"><h3>The two best-measured stretches, ranked separately</h3>
+    <a href="results/an_3_two_stretches.png?v=20261019121817" target="_blank"><img class="fig" src="results/an_3_two_stretches.png?v=20261019121817" alt="two stretches" loading="lazy"></a>
+    <p class="notes">The full-descent ranking mixes a well-measured part (the turns) with a weak one (when a slow ride really
+      ended). Here each stretch is ranked on its own, over the same distance for everyone. Left: the time through the turns,
+      from the gyro, with both ends measured (no launch time needed: it can't be pinned from the logger alone). Right: the landing video's tube mouth → lip time, which only riders who reached the lip
+      have, and which is where a rider like P13 shows up as fast. Hatched = the logger's turn signature was unreliable.
+      ○ = the same turn time from the chest camera's own gyro and clock: where the two agree (most rides, within ~0.1 s)
+      the turn time is solid. For a spinning rider (P13, P15) both sensors are fooled the same way, so agreement means nothing.</p>
+    <p class="notes"><b>Why not one clock from the first turn to the lip?</b> The turns are timed on the logger's clock, the
+      lip on the landing camera's, and the landing clips were trimmed without a shared sync event. The logger shows no clean
+      free fall or landing spike off the lip (the trough is bumpy and the rubber soft), so the two clocks can only be linked to
+      about ±0.3–0.5 s. A sync cue that every camera and the logger record (the GO beep next to the landing camera, a clap or a
+      flash) would make the whole descent measurable end to end next time.</p></div>
+  <div class="card"><h3>Model vs measurement, stretch by stretch</h3>
+    <a href="results/an_2_model_vs_measured.png?v=20261019121817" target="_blank"><img class="fig" src="results/an_2_model_vs_measured.png?v=20261019121817" alt="model vs measured" loading="lazy" style="max-width:640px"></a>
+    <p class="notes">Each dot is one ride on one stretch: measured average speed (turn timing from the logger, lower straight from
+      logger + landing camera, tube mouth → lip from the landing video) against the fitted model on the same stretch. The model
+      has three free numbers per ride (push, turn friction, lower friction), so a close match on four stretches is a real check.
+      The left turn fits worst (20 %).</p></div>
   <h2>All rides side by side</h2>
   <p class="notes">Click a column to sort, a row to open the ride. "Out of the tube" exists only where the landing video timed
     the last straight (the riders who shot off).</p>
@@ -142,7 +169,7 @@ const $ = id => document.getElementById(id);
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const fmt = (v, d = 1) => (v == null || Number.isNaN(v)) ? "—" : (+v).toFixed(d);
 const tip = $("tip");
-const V = "20261019113940";
+const V = "20261019121817";
 /* ------------------------------------------------------------------ chart */
 function niceTicks(lo, hi, n = 5) {
   const span = hi - lo || 1, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
@@ -299,7 +326,7 @@ function select(id) {
   SEL = R.find(r => r.run_id === id); const r = SEL, e = ex(r), o = outc(r), L = OUT[o];
   bars();
   const rk = rankOf(r, vt), g = e.gates, ls = e.ls;
-  const vMB = g ? 2.25 / (g.bend - g.mouth) * KMH : null, vBL = g ? 1.70 / (g.lip - g.bend) * KMH : null;
+  const vML = g ? 3.95 / (g.lip - g.mouth) * KMH : null;
   const verdict = [L ? L[0] + (e.s_rest ? ` (at ${fmt(e.s_rest)} m; the flat starts at 11.05)` : "") : (r.exit_how || ""), vt(r) != null ? `${fmt(vt(r) * KMH)} km/h through the turns (${rk[0]} of ${rk[1]})` : "",
     e.posture ? POST[e.posture] + " in the trough" : "", r.model_started_from_rest ? "started from rest" : `pushed off at ${fmt(r.model_v_begin_mps * KMH)} km/h`]
     .filter(Boolean).join(" · ");
@@ -311,12 +338,12 @@ function select(id) {
       ${tile("Push-off", r.model_started_from_rest ? "0" : fmt(r.model_v_begin_mps * KMH), "km/h", "logger model, top of the slope")}
       ${tile("Through the turns", fmt((vt(r) ?? NaN) * KMH), "km/h", "from the turn timing (two sensors)")}
       ${tile("Out of the tube", ls ? fmt(ls.v_mouth * KMH) : "—", ls ? "km/h" : "", ls ? "fit to logger + landing video" : "only fitted for riders who shot off")}
-      ${tile("Tube mouth → lip", g ? fmt(g.lip - g.mouth, 2) : "—", g ? "s" : "", g ? `video: ${fmt(vMB)} then ${fmt(vBL)} km/h · the cop 0.70 s` : "not filmed passing the lip")}
+      ${tile("Tube mouth → lip", g ? fmt(g.lip - g.mouth, 2) : "—", g ? "s" : "", g ? `video, feet: ${fmt(vML)} km/h on average · the cop 0.70 s` : "not filmed passing the lip")}
       ${tile("Friction", `${fmt(r.mu_eff, 2)} / ${fmt(ls ? ls.mu : r.mu_lower, 2)}`, "", "turns / lower straight (stall at 0.58)")}
     </div>
     <div class="grid2">
       <div class="card"><h3>Speed along the slide</h3><div class="legend" id="legV"></div><svg class="chart" id="cV" height="260"></svg>
-        <p class="notes">This run vs the average of riders with the same ending and the cop's most likely curve.${ls ? " Dashed: the fit to the landing video on the last straight." : ""}</p></div>
+        <p class="notes">Fitted model of this run vs what was measured on each stretch (green bars), the average of riders with the same ending, and the cop's most likely curve.${ls ? " Dashed: the fit to the landing video on the last straight." : ""}</p></div>
       <div class="card"><h3>Which way the body points</h3><svg class="chart" id="cH" height="260"></svg>
         <p class="notes">Gyro heading. The slide turns 120° right, then 45° left: the turn times give the speed.</p></div>
       <div class="card"><h3>What the logger felt</h3><div class="legend" id="legA"></div><svg class="chart" id="cA" height="230"></svg>
@@ -332,7 +359,12 @@ function select(id) {
   const cop = TYP.cop[1] || TYP.cop[0];
   if (cop) series.push({ name: "the cop (most likely)", label: "the cop", labelX: 5.2, color: COPC, x: cop.s, y: cop.v, width: 2, dash: "7 5" });
   if (ls && ls.curve) series.push({ name: "fit to the landing video", color: col(r), x: ls.curve.s, y: ls.curve.v.map(v => v * KMH), width: 2, dash: "3 3" });
-  legend($("legV"), series.map(s => ({ name: s.name, color: s.color, dash: !!s.dash })));
+  // measured average speed on each stretch, drawn as a flat bar over that stretch
+  const meas = (r.segments || []).map(g => [g[0], g[1], g[4] * KMH]);
+  if (r.v_lower_measured_mps > 0.05 && r.left_t_end) meas.push([6.95, Math.min(e.s_rest || 12.75, 12.75), r.v_lower_measured_mps * KMH]);
+  if (g) meas.push([8.80, 12.75, 3.95 / (g.lip - g.mouth) * KMH]);
+  meas.forEach(([a, b, v], i) => series.push({ name: i ? "" : "measured (average on each stretch)", color: "#2a9d8f", x: [a, b], y: [v, v], width: 6, opacity: 0.85 }));
+  legend($("legV"), series.filter(s => s.name).map(s => ({ name: s.name, color: s.color, dash: !!s.dash })));
   lineChart($("cV"), { series, bands: segBands(), xLabel: "distance down the slide (m)", yLabel: "km/h", xDomain: [0, DOC.track.length_m], yDomain: [0, 24], yFmt: v => v.toFixed(0) });
   // heading and raw signals vs time since departure
   const t0 = r.model.t[0], tEnd = r.model.t[r.model.t.length - 1] - t0 + 1.5, S = r.series, xs = [], ps = [], gy = [], ac = [];
@@ -352,7 +384,7 @@ function select(id) {
     ["came to rest / left the lip", r.model_t_end - t0]];
   let rows = ev.filter(x => x[1] != null).map(([n, a, b]) => `<tr><td class="l">${n}</td><td>${fmt(a, 2)} s</td><td>${b != null ? fmt(b, 2) + " s" : ""}</td></tr>`).join("");
   if (g) rows += `<tr><td class="l" colspan="3" style="color:var(--text-dim)">landing camera (own clock)</td></tr>` +
-    [["tube mouth → bend (2.25 m)", g.bend - g.mouth, vMB], ["bend → lip (1.70 m)", g.lip - g.bend, vBL]]
+    [["tube mouth → lip (3.95 m)", g.lip - g.mouth, vML]]
       .map(([n, d, v]) => `<tr><td class="l">${n}</td><td>${fmt(d, 2)} s</td><td>${fmt(v)} km/h</td></tr>`).join("");
   $("tl").innerHTML = `<table class="tlt"><tbody>${rows}</tbody></table><p class="notes">Time on the slide: ${fmt(r.model_time_on_slide_s, 1)} s · top speed ${fmt(r.model_v_peak_mps * KMH)} km/h.</p>`;
 }
