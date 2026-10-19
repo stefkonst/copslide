@@ -54,7 +54,7 @@ function poseAt(c, t) {
   });
   const p = three.meshes[c.parts.indexOf("pelvis")].position;
   three.s = sNear([p.x, p.y, p.z], three.snap ? GEO.S0 : (three.s ?? GEO.S0));
-  const F = frameAt(Math.min(three.s, GEO.S_LIP)), axis = three.s <= GEO.S_LIP ? new THREE.Vector3(...F.o.map((x, i) => x + F.n[i] * GEO.R)) : p.clone();
+  const Fr = frameAt(Math.min(three.s, GEO.S_LIP)), axis = three.s <= GEO.S_LIP ? new THREE.Vector3(...Fr.o.map((x, i) => x + Fr.n[i] * GEO.R)) : p.clone();
   if (three.snap) { three.camT.copy(axis); three.snap = false; } else three.camT.lerp(axis, 0.25); three.cam.position.set(three.camT.x - 1.1, three.camT.y + 1.2, three.camT.z + 1.8); three.cam.lookAt(three.camT);
   three.ren.render(three.scene, three.cam);
 }
