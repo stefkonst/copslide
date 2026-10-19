@@ -73,9 +73,11 @@ function show(name) {
 document.querySelectorAll(".chR").forEach(b => b.addEventListener("click", () => { RATE = +b.dataset.r; $("chVideo").playbackRate = RATE;
   document.querySelectorAll(".chR").forEach(x => x.classList.toggle("active", x === b)); }));
 const ready = fetch("launch/replays.json?v=" + (window.V || "")).then(r => r.json()).then(d => { R = d; });
-window.addEventListener("ride-selected", e => {
-  const box = $("chestBox"), name = CHEST[e.detail];
-  if (!name) { box.style.display = "none"; cancelAnimationFrame(raf); $("chVideo").pause(); return; }
-  box.style.display = "";
+function pick(name) {
+  document.querySelectorAll(".chP").forEach(b => b.classList.toggle("active", b.dataset.n === name));
   ready.then(() => { if (!three) initThree(); if (R.cases[name] && R.cases[name].chest) show(name); });
-});
+}
+document.querySelectorAll(".chP").forEach(b => b.addEventListener("click", () => pick(b.dataset.n)));
+// always on, P02 by default; picking P02 or P14 in the ranking switches it
+window.addEventListener("ride-selected", e => { const name = CHEST[e.detail]; if (name && name !== CUR) pick(name); });
+pick("P02");
