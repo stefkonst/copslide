@@ -1,4 +1,4 @@
-/* Full-body physics of the slide from the top of the turns to the playground:
+/* Full-body physics of the whole slide: entry flat (0.72 m) → upper straight (eases into 30° over 0.30 m) →
    right turn (120°, 2.35 m) → left turn (45°, 1.00 m) → covered lower straight → tube mouth (8.80 m) →
    open trough → bend → flat → lip (12.75 m, 0.55 m above the ground) → flight → playground.
    Engine: Rapier 3-D 0.14 (contacts with Coulomb friction from the real normal forces).
@@ -9,9 +9,9 @@
    Runs in the browser and in Node: createSim(RAPIER, params) → { step(n), state(), com(), bodies, ... }. */
 
 export const GEO = { TH: 30 * Math.PI / 180, S_RT: 3.70, S_RT1: 6.05, S_LT1: 7.05, S_MOUTH: 8.80, S_B0: 11.05, S_B1: 11.45,
-  S_LIP: 12.75, R: 0.375, LIP_H: 0.55, S0: 3.20, SWEEP_R: -120 * Math.PI / 180, SWEEP_L: 45 * Math.PI / 180 };
+  S_LIP: 12.75, R: 0.375, LIP_H: 0.55, S0: 0.0, S_TOP: 0.72, RAMP: 0.30, SWEEP_R: -120 * Math.PI / 180, SWEEP_L: 45 * Math.PI / 180 };
 const G = GEO, { TH, S_MOUTH, S_B0, S_B1, S_LIP, R, LIP_H } = GEO;
-export const pitch = s => s < S_B0 ? TH : s < S_B1 ? TH * (1 - (s - S_B0) / (S_B1 - S_B0)) : 0;
+export const pitch = s => s < G.S_TOP ? 0 : s < G.S_TOP + G.RAMP ? TH * (s - G.S_TOP) / G.RAMP : s < S_B0 ? TH : s < S_B1 ? TH * (1 - (s - S_B0) / (S_B1 - S_B0)) : 0;
 const yawRate = s => s >= G.S_RT && s < G.S_RT1 ? G.SWEEP_R / (G.S_RT1 - G.S_RT) : s >= G.S_RT1 && s < G.S_LT1 ? G.SWEEP_L / (G.S_LT1 - G.S_RT1) : 0;
 
 /* path table: bottom-of-trough point o, tangent t, normal n (slide "up"), side b = t × n; y up, yaw + = left */
