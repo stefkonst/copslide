@@ -212,11 +212,11 @@ function drawChart() {
   for (const s of [0, 4, 8, 12]) g += `<text x="${X(s)}" y="${Hd - 12}" fill="${css("--text-faint")}" font-size="10" text-anchor="middle">${s} m</text>`;
   if (TH) for (const [k, p] of Object.entries(TH.profiles)) {   // reference: each clothes type, 6 km/h push, on the back
     const q = p.map(r => [r[1], r[2]]); g += path(q, css("--text-faint"), 1.3, "5 4");
-    const m = q[Math.floor(q.length * (k === "cop" ? 0.55 : 0.75))]; if (m) g += `<text x="${X(m[0])}" y="${Y(m[1]) - 6}" fill="${css("--text-dim")}" font-size="10.5" text-anchor="middle">${CLOTHES[k].label} (reference)</text>`;
+    const m = q[Math.floor(q.length * (k === "cop" ? 0.55 : 0.75))]; if (m) g += `<text x="${Math.min(X(m[0]), Wd - M.r - 4)}" y="${Y(m[1]) - 6}" fill="${css("--text-dim")}" font-size="10.5" text-anchor="${X(m[0]) > Wd * 0.7 ? "end" : "middle"}">${CLOTHES[k].label}</text>`;
   }
   runs.forEach((r, i) => { g += path(r.p, RUN_COL[i % 3], 2, null); });
   if (hist.length > 1) g += path(hist, RUN_COL[runs.length % 3], 3, null);
-  g += `<text x="${(M.l + Wd - M.r) / 2}" y="${Hd - 1}" fill="${css("--text-dim")}" font-size="11" text-anchor="middle">distance down the slide · thick: your run · thin: your previous runs · dashed: reference (6 km/h push, on the back)</text>`;
+  g += `<text x="${(M.l + Wd - M.r) / 2}" y="${Hd - 1}" fill="${css("--text-dim")}" font-size="11" text-anchor="middle">${Wd < 560 ? "distance (m) · thick: your run · dashed: reference" : "distance down the slide · thick: your run · thin: your previous runs · dashed: reference (6 km/h push, on the back)"}</text>`;
   svg.innerHTML = g;
 }
 function run() {
