@@ -65,7 +65,7 @@ const box = new THREE.Box3().setFromPoints(PTS), C = box.getCenter(new THREE.Vec
       b.position.copy(ax).add(new THREE.Vector3(Math.cos(a) * (GEO.R + 0.035), Math.sin(a) * (GEO.R + 0.035), 0).applyQuaternion(q)); scene.add(b); }
   }
   { // semicircular flange collar between the turns (photos)
-    const [ax, t] = axisAt(GEO.S_RT1 + 0.3), fl = new THREE.Mesh(new THREE.RingGeometry(GEO.R + 0.02, GEO.R + 0.55, 32, 1, 0, Math.PI), std(0xb4bcc2, { metalness: 0.85, roughness: 0.3, side: THREE.DoubleSide }));
+    const [ax, t] = axisAt(GEO.S_RT1 + 0.3), fl = new THREE.Mesh(new THREE.RingGeometry(GEO.R + 0.02, GEO.R + 0.40, 32, 1, 0, Math.PI), std(0xdfe4e8, { metalness: 0.45, roughness: 0.3, side: THREE.DoubleSide }));
     fl.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), t); fl.position.copy(ax); fl.castShadow = true; scene.add(fl);
   }
   for (const s of [GEO.S_B1 + 0.25, GEO.S_LIP - 0.35]) { const F = frameAt(s), b = V3(F.b);   // steel legs under the flat end
@@ -145,7 +145,7 @@ const box = new THREE.Box3().setFromPoints(PTS), C = box.getCenter(new THREE.Vec
 }
 
 /* ---------------------------------------------------------------- body + physics */
-let RAP = null, sim = null, meshes = {}, rate = 1, acc = 0, last = 0, camT = new THREE.Vector3(), camMode = "follow", hist = [], runs = [];
+let RAP = null, sim = null, meshes = {}, rate = 1, acc = 0, last = 0, camT = new THREE.Vector3(), camMode = "orbit", hist = [], runs = [];
 function buildMeshes() {
   Object.values(meshes).forEach(m => scene.remove(m)); meshes = {};
   const cl = CLOTHES[$("cl").value];
@@ -157,7 +157,7 @@ function buildMeshes() {
     m.castShadow = true; scene.add(m); meshes[k] = m;
   }
 }
-const orbit = { th: -0.65, ph: 1.15, r: Math.max(9, SZ.length() * 0.9) };
+const orbit = { th: -1.15, ph: 1.12, r: Math.max(9, SZ.length() * 0.9) };
 const TOWER = new THREE.Vector3(...frameAt(0).o).add(new THREE.Vector3(0, 2.4, 0)).addScaledVector(new THREE.Vector3(...frameAt(0).t), 0.4);
 function sync() {
   for (const [k, rb] of Object.entries(sim.bodies)) { const t = rb.translation(), q = rb.rotation(); meshes[k].position.set(t.x, t.y, t.z); meshes[k].quaternion.set(q.x, q.y, q.z, q.w); }
