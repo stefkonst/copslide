@@ -145,7 +145,7 @@ const box = new THREE.Box3().setFromPoints(PTS), C = box.getCenter(new THREE.Vec
 }
 
 /* ---------------------------------------------------------------- body + physics */
-let RAP = null, sim = null, meshes = {}, rate = 1, acc = 0, last = 0, camT = new THREE.Vector3(), camMode = "orbit", hist = [], runs = [];
+let RAP = null, sim = null, meshes = {}, rate = 1, acc = 0, last = 0, camT = new THREE.Vector3(), camMode = "stairs", hist = [], runs = [];
 function buildMeshes() {
   Object.values(meshes).forEach(m => scene.remove(m)); meshes = {};
   const cl = CLOTHES[$("cl").value];
@@ -167,6 +167,10 @@ function sync() {
   const T = new THREE.Vector3(...F.t);
   window._roof.material.opacity = camMode === "pov" ? 0.08 : 0.35;
   if (camMode === "orbit") { cam.position.set(C.x + orbit.r * Math.sin(orbit.ph) * Math.sin(orbit.th), C.y * 0.7 + orbit.r * Math.cos(orbit.ph), C.z + orbit.r * Math.sin(orbit.ph) * Math.cos(orbit.th)); cam.lookAt(C.x, C.y * 0.7, C.z); }
+  else if (camMode === "stairs") {   // standing beside the granite stairs, looking up the lower slide like the landing camera
+    const A = frameAt(GEO.S_B0 + 0.6), th = new THREE.Vector3(A.t[0], 0, A.t[2]).normalize(), rt = new THREE.Vector3(th.z, 0, -th.x);
+    cam.position.set(A.o[0] + rt.x * 5.6 + th.x * 3.4, 1.7, A.o[2] + rt.z * 5.6 + th.z * 3.4);
+    const M = frameAt(GEO.S_MOUTH + 1.6).o; cam.lookAt(M[0], M[1] + 0.1, M[2]); }
   else if (camMode === "photo") { const FL = frameAt(GEO.S_LIP), tl = new THREE.Vector3(FL.t[0], 0, FL.t[2]).normalize(), rt = new THREE.Vector3(tl.z, 0, -tl.x);
     cam.position.set(FL.o[0] + tl.x * 3.6 + rt.x * 0.9, 1.1, FL.o[2] + tl.z * 3.6 + rt.z * 0.9); const M = frameAt(GEO.S_MOUTH - 1.5).o; cam.lookAt(M[0], M[1] + 0.8, M[2]); }
   else if (camMode === "tower") { cam.position.copy(TOWER); cam.lookAt(camT); }
