@@ -118,8 +118,9 @@
   <nav class="tabs"><a class="tab active" href="./">Whole-slide simulation</a><a class="tab" href="launch/">Landing simulation</a><a class="tab" href="data.html">Analysis</a><a class="tab" href="results.html">Results</a></nav>
 </header>
 <main>
-  <p class="lede">A 75 kg body of 11 linked parts slides down the City Hall Plaza slide (30° slope, two turns, covered tube,
-    open trough, end lip) with Coulomb friction at every contact. Pure theory: choose the push, the position and the clothes.</p>
+  <p class="lede">Send a virtual rider down Boston's City Hall Plaza slide. Choose how hard they push off, how they lie and
+    what they wear, then watch: do they crawl to a stop on the flat, or fly off the end like the cop? The rider is a 75 kg
+    body of 11 linked parts, and the slide is the real one: 30° slope, two turns, a covered tube and an open trough.</p>
   <div class="lab">
     <div class="card"><div id="view"></div>
       <div class="chips" style="margin-top:8px"><button class="chip" id="go">▶ run again</button>
@@ -144,20 +145,20 @@
     <p class="notes">The video that started it. What our measurements say about it is on <a href="results.html">Results</a>.</p></div>
   <h2>Effect of each parameter</h2>
   <p class="notes">One choice changed at a time, the rest fixed (6 km/h push, on the back, normal clothes); same physics as above.</p>
-  <div class="card fig"><a href="results/th_1_push.png?v=20261019121817" target="_blank"><img src="results/th_1_push.png?v=20261019121817" alt="Push-off speed" loading="lazy"></a>
+  <div class="card fig"><a href="results/th_1_push.png?v=20261019131336" target="_blank"><img src="results/th_1_push.png?v=20261019131336" alt="Push-off speed" loading="lazy"></a>
     <div><h3>Push-off speed</h3><p><b>Expected:</b> A harder push adds little: from no push to 16 km/h, the speed out of the tube goes 8.4 → 10.0 km/h in normal clothes and 18.2 → 18.7 in the cop uniform. In normal clothes the rider still stops at 12.0 m; the cop uniform always shoots off. The turns take the push away again.</p></div></div>
-  <div class="card fig"><a href="results/th_2_friction.png?v=20261019121817" target="_blank"><img src="results/th_2_friction.png?v=20261019121817" alt="Friction coefficient (what the clothes set)" loading="lazy"></a>
+  <div class="card fig"><a href="results/th_2_friction.png?v=20261019131336" target="_blank"><img src="results/th_2_friction.png?v=20261019131336" alt="Friction coefficient (what the clothes set)" loading="lazy"></a>
     <div><h3>Friction coefficient (what the clothes set)</h3><p><b>Expected:</b> Speed falls steadily as friction rises towards the stall value tan 30° = 0.58; from about 0.35, the rider no longer reaches the end lip. Normal clothes (0.40) stop on the exit flat; the cop uniform (0.15) shoots off.</p></div></div>
-  <div class="card fig"><a href="results/th_3_posture.png?v=20261019121817" target="_blank"><img src="results/th_3_posture.png?v=20261019121817" alt="Starting position" loading="lazy"></a>
+  <div class="card fig"><a href="results/th_3_posture.png?v=20261019131336" target="_blank"><img src="results/th_3_posture.png?v=20261019131336" alt="Starting position" loading="lazy"></a>
     <div><h3>Starting position</h3><p><b>Expected:</b> Speed out of the tube: 7–10 km/h in normal clothes and 18 in the cop uniform, depending on the position. The clothes matter far more than the position, which mostly changes how the body twists.</p></div></div>
-  <div class="card fig"><a href="results/th_4_profiles.png?v=20261019121817" target="_blank"><img src="results/th_4_profiles.png?v=20261019121817" alt="Speed along the slide" loading="lazy"></a>
+  <div class="card fig"><a href="results/th_4_profiles.png?v=20261019131336" target="_blank"><img src="results/th_4_profiles.png?v=20261019131336" alt="Speed along the slide" loading="lazy"></a>
     <div><h3>Speed along the slide</h3><p><b>Expected:</b> Same push and position, only the clothes differ: the curves split in the turns and never come back together.</p></div></div>
   <p class="notes">Physics: Rapier rigid-body engine; slide geometry from measured segment lengths; one friction coefficient for the
     whole slide; body held loosely (same muscle tone for everyone). Calibrated against real rides on the
     <a href="launch/">Landing simulation</a> page and in <a href="results.html">Results</a>.</p>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>window.V = "20261019121817";</script>
-<script type="module" src="whole_view.js?v=20261019121817"></script>
+<script>window.V = "20261019131336";</script>
+<script type="module" src="whole_view.js?v=20261019131336"></script>
 </body>
 </html>

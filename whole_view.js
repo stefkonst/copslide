@@ -72,16 +72,23 @@ const box = new THREE.Box3().setFromPoints(PTS), C = box.getCenter(new THREE.Vec
     for (const sg of [-1, 1]) { const o = V3(F.o).addScaledVector(b, sg * 0.28); put(new THREE.CylinderGeometry(0.025, 0.025, o.y, 8), std(0x9aa2a8, { metalness: 0.8 }), o.x, o.y / 2, o.z); } }
   // ---- maroon rubber hill: broad, smooth, the trough runs down it
   const rubber = std(0x8a4a43, { map: tex(256, 256, speckle("#8a4a43", ["#6e3a35", "#a7655b", "#c9a59b"], 3000), 6, 6), side: THREE.DoubleSide });
-  { const rows = []; for (let s = GEO.S_RT - 0.3; s <= GEO.S_B1 + 0.6; s += 0.2) rows.push(frameAt(Math.min(s, GEO.S_LIP)));
-    const N = 24, half = 4.2, pos = [], uv = [], idx = [];
-    rows.forEach((F, i) => { const r = side(V3(F.t).setY(0).normalize()), ridge = Math.max(0, F.o[1] - 0.05);
-      for (let j = 0; j <= N; j++) { const f = j / N * 2 - 1, y = ridge * Math.pow(Math.cos(f * Math.PI / 2), 1.6); pos.push(F.o[0] + r.x * f * half, y, F.o[2] + r.z * f * half); uv.push(j / N, i / rows.length); } });
-    for (let i = 0; i < rows.length - 1; i++) for (let j = 0; j < N; j++) { const a = i * (N + 1) + j, b = a + N + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); }
+  { // height map: as high as the slide it supports allows, sloping away to the plaza, and never above the trough
+    // floor anywhere the trough passes overhead (the turns cross over each other, so this must hold for every part).
+    const S = []; for (let q = 0; q <= GEO.S_LIP; q += 0.05) { const F = frameAt(q); S.push([F.o[0], F.o[1], F.o[2], q]); }
+    const sup = S.filter(p => p[3] >= GEO.S_RT - 0.3 && p[3] <= GEO.S_LIP - 0.3);
+    let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; S.forEach(p => { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); z0 = Math.min(z0, p[2]); z1 = Math.max(z1, p[2]); });
+    x0 -= 6; x1 += 6; z0 -= 6; z1 += 6;
+    const step = 0.12, nx = Math.ceil((x1 - x0) / step), nz = Math.ceil((z1 - z0) / step), R = GEO.R, pos = [], uv = [], idx = [];
+    for (let j = 0; j <= nz; j++) for (let i = 0; i <= nx; i++) {
+      const x = x0 + i * step, z = z0 + j * step;
+      let h = 0, cap = 1e9;
+      for (const p of sup) { const d = Math.hypot(x - p[0], z - p[2]); h = Math.max(h, p[1] - 0.05 - 0.75 * Math.max(0, d - 0.35)); }
+      for (const p of S) { const d = Math.hypot(x - p[0], z - p[2]); if (d < R + 0.06) cap = Math.min(cap, p[1] + R - Math.sqrt(Math.max(0, R * R - Math.min(d, R) ** 2)) - 0.04); }
+      h = Math.min(h, cap); pos.push(x, h < 0.01 ? -0.03 : h, z); uv.push(i / nx * 8, j / nz * 8);
+    }
+    for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { const a = j * (nx + 1) + i, b = a + nx + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); }
     const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
     const hill = new THREE.Mesh(g, rubber); hill.receiveShadow = hill.castShadow = true; scene.add(hill);
-    // back of the hill (behind the turns) as a dome so it reads as one mound
-    const dome = put(new THREE.SphereGeometry(3.4, 32, 12, 0, Math.PI * 2, 0, Math.PI / 2), rubber, ...(() => { const F = frameAt(GEO.S_RT); return [F.o[0], 0, F.o[2]]; })());
-    dome.scale.set(1, Math.max(0.3, frameAt(GEO.S_RT).o[1] - 0.15) / 3.4, 1);
   }
   // ---- granite block stairs up the hill beside the trough, with hoop handrails
   { const gran = std(0x77746f, { map: tex(128, 128, speckle("#77746f", ["#5b5955", "#9a9690", "#3f3d3a"], 1800), 2, 2) });
