@@ -28,7 +28,7 @@ const sun = new THREE.DirectionalLight(0xffffff, 0.75); sun.position.set(2, 6, 5
   ring.position.set(...Fm.o.map((x, i) => x + Fm.n[i] * GEO.R)); ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(...Fm.t)); scene.add(ring);
 }
 
-let RAP = null, sim = null, meshes = {}, rate = 0.5, acc = 0, last = 0, camT = new THREE.Vector3();
+let RAP = null, sim = null, meshes = {}, rate = 0.5, acc = 0, last = 0, camT = new THREE.Vector3(), VCAM = "follow";
 const COLORS = { head: 0xd9a888, torso: 0x1d2533, pelvis: 0x1d2533 };
 function buildMeshes() {
   Object.values(meshes).forEach(m => scene.remove(m)); meshes = {};
@@ -54,8 +54,16 @@ function sync() {
   const s = Math.min(sim.state().s, GEO.S_LIP), F = frameAt(s);   // follow the trough axis, not the body
   const tgt = sim.state().s <= GEO.S_LIP ? new THREE.Vector3(...F.o.map((x, i) => x + F.n[i] * GEO.R)) : new THREE.Vector3(c.x, c.y, c.z);
   camT.lerp(tgt, 0.15);
-  cam.position.set(camT.x - 1.0, camT.y + 1.15, camT.z + 1.6); cam.lookAt(camT);
+  if (VCAM === "pov" && meshes.head) {   // rider's view: from the head, looking down the slide like a chest camera
+    const h = meshes.head.position, F2 = frameAt(Math.min(s + 1.2, GEO.S_LIP));
+    cam.position.set(h.x, h.y + 0.12, h.z); cam.lookAt(F2.o[0] + F2.n[0] * GEO.R * 0.6, F2.o[1] + F2.n[1] * GEO.R * 0.6, F2.o[2] + F2.n[2] * GEO.R * 0.6);
+  } else if (VCAM === "landing") {       // fixed, beside the lower slide looking up it, like the landing camera
+    const A = frameAt(10.6), e = A.o.map((x, i) => x + A.b[i] * 4.2 - A.t[i] * 2.4);
+    cam.position.set(e[0], e[1] + 1.3, e[2]); cam.lookAt(A.o[0] - A.t[0] * 0.8, A.o[1] - A.t[1] * 0.8 + 0.2, A.o[2] - A.t[2] * 0.8);
+  } else { cam.position.set(camT.x - 1.0, camT.y + 1.15, camT.z + 1.6); cam.lookAt(camT); }
 }
+document.querySelectorAll("[data-vcam]").forEach(b => b.addEventListener("click", () => { VCAM = b.dataset.vcam;
+  document.querySelectorAll("[data-vcam]").forEach(x => x.classList.toggle("active", x === b)); if (sim) sync(); }));
 function readouts(final) {
   const st = sim.state(), f = (x, d = 2) => x == null ? "—" : x.toFixed(d);
   const tml = st.tLip != null && st.tMouth != null ? st.tLip - st.tMouth : null;
