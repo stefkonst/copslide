@@ -104,7 +104,7 @@
 <style>
   .lab{display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); gap:14px; align-items:start}
   @media (max-width:900px){.lab{grid-template-columns:1fr}}
-  #view{height:440px; border-radius:8px; overflow:hidden}
+  #view{height:460px; border-radius:8px; overflow:hidden; touch-action:none}
   .ctl{margin:10px 0 14px} .ctl label{display:flex; justify-content:space-between; font-size:13px; color:var(--text-dim)}
   .ctl label b{color:var(--text); font-family:var(--font-mono); font-weight:500} .ctl input,.ctl select{width:100%}
   .ctl input{accent-color:var(--accent)}
@@ -114,48 +114,50 @@
 </style>
 <header>
   <h1>ANGELCON</h1>
-  <span class="sub">whole-slide simulation: full-body physics from the top to the playground</span>
+  <span class="sub">whole-slide simulation: the physics, from the top to the playground</span>
   <nav class="tabs"><a class="tab active" href="./">Whole-slide simulation</a><a class="tab" href="launch/">Landing simulation</a><a class="tab" href="data.html">Analysis</a><a class="tab" href="results.html">Results</a></nav>
 </header>
 <main>
-  <p class="lede">A 75 kg body made of 11 linked parts slides down the real slide (measured lengths, 30° slope, both turns,
-    covered tube, open trough, lip) with friction from every contact. Choose three things and watch what happens.</p>
+  <p class="lede">A 75 kg body of 11 linked parts slides down the City Hall Plaza slide (30° slope, two turns, covered tube,
+    open trough, end lip) with Coulomb friction at every contact. Pure theory: choose the push, the position and the clothes.</p>
   <div class="lab">
     <div class="card"><div id="view"></div>
       <div class="chips" style="margin-top:8px"><button class="chip" id="go">▶ run again</button>
-        <button class="chip" data-rate="0.25">¼ speed</button><button class="chip" data-rate="0.5">½ speed</button><button class="chip active" data-rate="1">real time</button>
-        <button class="chip active" data-cam="follow">follow</button><button class="chip" data-cam="overview">overview</button></div></div>
+        <button class="chip" data-rate="0.25">¼ speed</button><button class="chip" data-rate="0.5">½ speed</button><button class="chip active" data-rate="1">real time</button></div>
+      <div class="chips" style="margin-top:6px"><button class="chip active" data-cam="follow">follow</button><button class="chip" data-cam="chase">chase</button>
+        <button class="chip" data-cam="pov">rider's view</button><button class="chip" data-cam="tower">from the tower</button><button class="chip" data-cam="orbit">orbit (drag, scroll)</button></div></div>
     <div class="card">
       <h3>Choose</h3>
-      <div class="ctl"><label>Push-off speed (whole body on the slope) <b id="pushVal"></b></label><input id="push" type="range" min="0" max="16" step="0.5" value="5.8">
-        <p class="notes">Our riders: about 6 km/h.</p></div>
+      <div class="ctl"><label>Push-off speed (whole body on the slope) <b id="pushVal"></b></label><input id="push" type="range" min="0" max="16" step="0.5" value="6"></div>
       <div class="ctl"><label>Starting position</label><select id="pos">
-        <option value="back">lying on the back</option><option value="sitting">sitting up</option><option value="belly">on the belly, legs straight</option>
-        <option value="cop">the cop: on the belly, legs up</option><option value="side">on the side</option></select></div>
+        <option value="back">lying on the back, feet first</option><option value="sitting">sitting up</option><option value="belly">on the belly, legs straight</option>
+        <option value="cop">on the belly, legs up (like the cop)</option><option value="side">on the side</option></select></div>
       <div class="ctl"><label>Clothes</label><select id="cl">
-        <option value="normal">Normal clothes (our riders)</option><option value="suit">Cop suit (our riders)</option>
-        <option value="rain">Rain suit ("wannabe cop")</option><option value="cop">The viral cop's uniform</option></select>
+        <option value="normal">Normal clothes</option><option value="cop">Cop uniform</option></select></div>
+      <div class="ctl"><label>Friction coefficient (clothes on steel) <b id="muVal"></b></label><input id="mu" type="range" min="0.05" max="0.60" step="0.01" value="0.40">
         <p class="notes" id="clNote"></p></div>
-      <p class="notes">"Clothes" sets the friction fitted to real runs in those clothes, so it also carries how those riders
-        rode (posture in the turns, damp slide…). The cop and the wannabe cop were fitted with a relaxed body.</p>
     </div>
   </div>
   <div class="tiles" id="read"></div>
   <div class="card"><h3>Speed along the slide</h3><svg class="chart" id="chart" height="240"></svg></div>
+  <div class="card"><h3>For reference: the real cop</h3><p>The original clip (Live Boston, August 2023) is shown in news reports, e.g. <a href="https://www.nbcboston.com/news/local/boston-police-officer-slide-video-reaction/3103465/" target="_blank" rel="noopener">NBC Boston</a> and <a href="https://www.mediaite.com/news/oh-fck-viral-clip-shows-boston-cop-taking-a-horrifying-tumble-down-a-gigantic-slide" target="_blank" rel="noopener">Mediaite</a>.</p>
+    <p class="notes">The video that started it. What our measurements say about it is on <a href="results.html">Results</a>.</p></div>
   <h2>Effect of each parameter</h2>
-  <p class="notes">Each figure changes one choice and keeps the others at our riders' values; computed with the same physics.</p>
-  <div class="card fig"><a href="results/sim_w1_push.png?v=20261019105710" target="_blank"><img src="results/sim_w1_push.png?v=20261019105710" alt="Push-off speed" loading="lazy"></a>
-    <div><h3>Push-off speed</h3><p><b>Expected:</b> A harder push helps: going from 2 to 16 km/h cuts our riders' time from 5.9 to 3.2 s. But even a 16 km/h push with our friction is slower than the cop with a gentle push (2.2–2.9 s). Push helps; it does not close the gap.</p></div></div>
-  <div class="card fig"><a href="results/sim_w2_posture.png?v=20261019105710" target="_blank"><img src="results/sim_w2_posture.png?v=20261019105710" alt="Starting position" loading="lazy"></a>
-    <div><h3>Starting position</h3><p><b>Expected:</b> With our riders' friction the position changes the time by about ±15 % (sitting up 4.2 s, cop position 5.7 s). With the cop's friction every position takes about 2.65 s. Position mostly changes how much the body twists (76–176°).</p></div></div>
-  <div class="card fig"><a href="results/sim_w3_profiles.png?v=20261019105710" target="_blank"><img src="results/sim_w3_profiles.png?v=20261019105710" alt="Clothes (= fitted friction)" loading="lazy"></a>
-    <div><h3>Clothes (= fitted friction)</h3><p><b>Expected:</b> Same push for all: the curves split in the turns (ours drop to about 5 km/h, the cop keeps 13–15) and the gap never closes. Clothes friction in the turns decides the run.</p></div></div>
-  <p class="notes">Physics: Rapier rigid-body engine; slide geometry from the measured segment lengths (turn angles
-    estimated from the gyro); friction per clothes setting fitted to the logger + video of those runs. Details on the
+  <p class="notes">One choice changed at a time, the rest fixed (6 km/h push, on the back, normal clothes); same physics as above.</p>
+  <div class="card fig"><a href="results/th_1_push.png?v=20261019113941" target="_blank"><img src="results/th_1_push.png?v=20261019113941" alt="Push-off speed" loading="lazy"></a>
+    <div><h3>Push-off speed</h3><p><b>Expected:</b> A harder push adds little: from no push to 16 km/h, the speed out of the tube goes 8.4 → 10.0 km/h in normal clothes and 18.2 → 18.7 in the cop uniform. In normal clothes the rider still stops at 12.0 m; the cop uniform always shoots off. The turns take the push away again.</p></div></div>
+  <div class="card fig"><a href="results/th_2_friction.png?v=20261019113941" target="_blank"><img src="results/th_2_friction.png?v=20261019113941" alt="Friction coefficient (what the clothes set)" loading="lazy"></a>
+    <div><h3>Friction coefficient (what the clothes set)</h3><p><b>Expected:</b> Speed falls steadily as friction rises towards the stall value tan 30° = 0.58; from about 0.35, the rider no longer reaches the end lip. Normal clothes (0.40) stop on the exit flat; the cop uniform (0.15) shoots off.</p></div></div>
+  <div class="card fig"><a href="results/th_3_posture.png?v=20261019113941" target="_blank"><img src="results/th_3_posture.png?v=20261019113941" alt="Starting position" loading="lazy"></a>
+    <div><h3>Starting position</h3><p><b>Expected:</b> Speed out of the tube: 7–10 km/h in normal clothes and 18 in the cop uniform, depending on the position. The clothes matter far more than the position, which mostly changes how the body twists.</p></div></div>
+  <div class="card fig"><a href="results/th_4_profiles.png?v=20261019113941" target="_blank"><img src="results/th_4_profiles.png?v=20261019113941" alt="Speed along the slide" loading="lazy"></a>
+    <div><h3>Speed along the slide</h3><p><b>Expected:</b> Same push and position, only the clothes differ: the curves split in the turns and never come back together.</p></div></div>
+  <p class="notes">Physics: Rapier rigid-body engine; slide geometry from measured segment lengths; one friction coefficient for the
+    whole slide; body held loosely (same muscle tone for everyone). Calibrated against real rides on the
     <a href="launch/">Landing simulation</a> page and in <a href="results.html">Results</a>.</p>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>window.V = "20261019105710";</script>
-<script type="module" src="whole_view.js?v=20261019105710"></script>
+<script>window.V = "20261019113941";</script>
+<script type="module" src="whole_view.js?v=20261019113941"></script>
 </body>
 </html>
