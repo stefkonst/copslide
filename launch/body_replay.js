@@ -2,7 +2,7 @@
    For each case: the video (where it may be published) with the simulated head / pelvis / feet drawn on top
    (see-through markers placed along the slide with the same four reference points the video timing uses),
    a synced 3-D replay of the simulated body, and speed vs time: body physics, point model, video. */
-import { slideMesh, GEO } from "./body_sim.js?v=2";
+import { slideMesh, GEO, frameAt, sNear } from "./body_sim.js?v=3";
 
 const $ = id => document.getElementById(id);
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
@@ -53,7 +53,9 @@ function poseAt(c, t) {
     m.quaternion.copy(qa.slerp(qb, f));
   });
   const p = three.meshes[c.parts.indexOf("pelvis")].position;
-  if (three.snap) { three.camT.copy(p); three.snap = false; } else three.camT.lerp(p, 0.2); three.cam.position.set(three.camT.x - 1.1, three.camT.y + 1.2, three.camT.z + 1.8); three.cam.lookAt(three.camT);
+  three.s = sNear([p.x, p.y, p.z], three.snap ? GEO.S0 : (three.s ?? GEO.S0));
+  const F = frameAt(Math.min(three.s, GEO.S_LIP)), axis = three.s <= GEO.S_LIP ? new THREE.Vector3(...F.o.map((x, i) => x + F.n[i] * GEO.R)) : p.clone();
+  if (three.snap) { three.camT.copy(axis); three.snap = false; } else three.camT.lerp(axis, 0.25); three.cam.position.set(three.camT.x - 1.1, three.camT.y + 1.2, three.camT.z + 1.8); three.cam.lookAt(three.camT);
   three.ren.render(three.scene, three.cam);
 }
 

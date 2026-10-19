@@ -163,7 +163,7 @@ export function createSim(RAPIER, prm) {
     const pr = K.parts[k], q = qmul(qslide, qmul(qroll, qz(pr.a))), c = toWorld(qrot(qroll, pr.c));
     const rb = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(...c).setRotation(q).setCcdEnabled(true)
       .setLinvel(F.t[0] * p.v0, F.t[1] * p.v0, F.t[2] * p.v0).setAngvel({ x: F.t[0] * p.spin, y: F.t[1] * p.spin, z: F.t[2] * p.spin })
-      .setAngularDamping(0.3));
+      .setAngularDamping(p.angDamp ?? 0.02));   // near-zero: real limbs keep their spin
     const cd = def.ball ? RAPIER.ColliderDesc.ball(def.ball) : RAPIER.ColliderDesc.cuboid(...def.box);
     world.createCollider(cd.setMass(def.m).setFriction(1.0).setFrictionCombineRule(RULE).setRestitution(0.05), rb);
     bodies[k] = rb; mass[k] = def.m; M += def.m;

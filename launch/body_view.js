@@ -1,6 +1,6 @@
 /* 3-D view of the full-body physics on the Launch page (three.js r128 is loaded globally as THREE). */
 import RAPIER from "https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.14.0/rapier.es.js";
-import { createSim, slideMesh, pointModel, POSTURES, GEO, frameAt } from "./body_sim.js?v=2";
+import { createSim, slideMesh, pointModel, POSTURES, GEO, frameAt } from "./body_sim.js?v=3";
 
 const $ = id => document.getElementById(id);
 const KMH = 3.6, COP_T = 0.70;
@@ -51,7 +51,9 @@ function sync() {
     meshes[k].position.set(t.x, t.y, t.z); meshes[k].quaternion.set(q.x, q.y, q.z, q.w);
   }
   const c = sim.com();
-  camT.lerp(new THREE.Vector3(c.x, c.y, c.z), 0.15);
+  const s = Math.min(sim.state().s, GEO.S_LIP), F = frameAt(s);   // follow the trough axis, not the body
+  const tgt = sim.state().s <= GEO.S_LIP ? new THREE.Vector3(...F.o.map((x, i) => x + F.n[i] * GEO.R)) : new THREE.Vector3(c.x, c.y, c.z);
+  camT.lerp(tgt, 0.15);
   cam.position.set(camT.x - 1.0, camT.y + 1.15, camT.z + 1.6); cam.lookAt(camT);
 }
 function readouts(final) {

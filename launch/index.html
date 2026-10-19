@@ -128,11 +128,9 @@
     <li><b>The gap is made in the turns.</b> To come out of the tube as fast as the cop, P12 would have needed to leave the
       turns at ~16 km/h instead of ~4.</li>
     <li><b>Full-body physics from the top of the turns confirms it.</b> Calibrated to each run, the 3-D ragdoll reproduces
-      P12, Angel and Stef (Stef even stops on the flat, as on her video). The cop's run needs friction 0.13 all the way: he
-      leaves the turns at 13 km/h (ours at 6) and reaches the tube mouth 26° up the wall, twisted 35°.</li>
+      P12, Angel and Stef (Stef even stops on the flat, as on her video). The cop's run needs friction 0.14 all the way with a relaxed body: he leaves the turns at 13 km/h (ours at 6) and reaches the tube mouth twisted 82°, legs flying.</li>
     <li><b>The swing and twist in his video are a consequence of speed, not a trick.</b> At our riders' speeds the same
-      body stays at the bottom and twists under 10°; at the cop's speed it rides up the wall and twists up to 60°. A
-      "wannabe cop" in a rain suit, lying like the cop, did 0.75 s.</li>
+      body stays at the bottom and twists under 10°; at the cop's speed a relaxed body swings up the walls and twists 80–90° — like in his video. Held stiff, it twists only ~40°, so he was probably loose. A "wannabe cop" in a rain suit, lying like the cop, did 0.75 s.</li>
   </ol>
   <p class="notes">Every video time is shown frame by frame in <code>results/gate_checks</code>. Earlier versions used a marker
     that perspective had put ~1 m too far down the trough and over-stated our riders' speeds by ~30 %.</p>
@@ -191,15 +189,15 @@
 </main>
 <div class="tip" id="tip"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script type="module" src="body_view.js?v=20261019102942"></script>
-<script type="module" src="body_replay.js?v=20261019102942"></script>
+<script type="module" src="body_view.js?v=20261019103931"></script>
+<script type="module" src="body_replay.js?v=20261019103931"></script>
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const fmt = (v, d = 1) => (v == null || Number.isNaN(v)) ? "—" : (+v).toFixed(d);
 const tip = $("tip");
-const V = "20261019102942";
+const V = "20261019103931";
 /* ------------------------------------------------------------------ chart */
 function niceTicks(lo, hi, n = 5) {
   const span = hi - lo || 1, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
@@ -450,7 +448,7 @@ function preset(name) {
   if (name === "cop") {
     // calibrated in the body physics: cop posture, 18 km/h out of the tube, friction 0.15 → his 0.70 s
     // calibrated in the full-body physics from the top of the turns: posture "cop", friction 0.13 everywhere
-    $("sV").value = 18; $("sP").value = "cop"; $("sM").value = 0.13; $("sMT").value = 0.13; $("sV0").value = 5.8; $("sStart").value = "turns";
+    $("sV").value = 18; $("sP").value = "cop"; $("sM").value = 0.14; $("sMT").value = 0.14; $("sV0").value = 5.8; $("sStart").value = "turns"; $("sT").value = 0;
   } else if (D && D.riders[name]) {
     SEL = name; const r = D.riders[name];
     $("sV").value = (r.v_mouth * KMH).toFixed(1); $("sP").value = "back"; $("sM").value = r.mu_eff.toFixed(2); $("sMT").value = 0.41; $("sV0").value = 5.8;
