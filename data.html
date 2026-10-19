@@ -163,14 +163,14 @@
   </div>
   <h2>All rides at a glance</h2>
   <div class="card"><h3>Every ride ranked by its full descent</h3>
-    <a href="results/an_1_descent_ranking.png?v=20261019134207" target="_blank"><img class="fig" src="results/an_1_descent_ranking.png?v=20261019134207" alt="ranking" loading="lazy"></a>
+    <a href="results/an_1_descent_ranking.png?v=20261019151912" target="_blank"><img class="fig" src="results/an_1_descent_ranking.png?v=20261019151912" alt="ranking" loading="lazy"></a>
     <p class="notes">Average speed from the top of the slope (logger departure) until the rider left the lip or came to rest.
       Leaving the lip: model fitted to the landing video's tube mouth → lip time. Coming to rest: the median of three independent
       estimates (logger goes quiet, GoPro picture goes still, model), with their spread as the error line; "?" = they differ by
       more than 2 s, typically slow riders who crept to a stop. ○ = the model fitted to that ride. The cop's full descent was never
       filmed: his line comes from the speed profiles that reproduce his measured 0.70 s on the last stretch.</p></div>
   <div class="card"><h3>The two best-measured stretches, ranked separately</h3>
-    <a href="results/an_3_two_stretches.png?v=20261019134207" target="_blank"><img class="fig" src="results/an_3_two_stretches.png?v=20261019134207" alt="two stretches" loading="lazy"></a>
+    <a href="results/an_3_two_stretches.png?v=20261019151912" target="_blank"><img class="fig" src="results/an_3_two_stretches.png?v=20261019151912" alt="two stretches" loading="lazy"></a>
     <p class="notes">The full-descent ranking mixes a well-measured part (the turns) with a weak one (when a slow ride really
       ended). Here each stretch is ranked on its own, over the same distance for everyone. Left: the time through the turns,
       from the gyro, with both ends measured (no launch time needed: it can't be pinned from the logger alone). Right: the landing video's tube mouth → lip time, which only riders who reached the lip
@@ -183,14 +183,14 @@
       about ±0.3–0.5 s. A sync cue that every camera and the logger record (the GO beep next to the landing camera, a clap or a
       flash) would make the whole descent measurable end to end next time.</p></div>
   <div class="card"><h3>How many g?</h3>
-    <a href="results/an_6_gforce.png?v=20261019134207" target="_blank"><img class="fig" src="results/an_6_gforce.png?v=20261019134207" alt="g-forces" loading="lazy"></a>
+    <a href="results/an_6_gforce.png?v=20261019151912" target="_blank"><img class="fig" src="results/an_6_gforce.png?v=20261019151912" alt="g-forces" loading="lazy"></a>
     <p class="notes">Waist logger during each ride (launch to the end). Bars: the peak sustained acceleration (smoothed at 3 Hz,
       what the whole body feels; 1 g = standing still). Dots: the hardest single knock against the steel. Nobody filmed a logger
       on the cop, so his value comes from the calibrated full-body simulation with a virtual logger at the waist. The simulation
       under-reads our riders by a factor 1.0–1.9 (◇ vs bars: its slide is perfectly smooth), so his estimate is scaled the same
       way: about 5 g, plausibly 4–7 g, at the bend where the slope flattens out.</p></div>
   <div class="card"><h3>Model vs measurement, stretch by stretch</h3>
-    <a href="results/an_2_model_vs_measured.png?v=20261019134207" target="_blank"><img class="fig" src="results/an_2_model_vs_measured.png?v=20261019134207" alt="model vs measured" loading="lazy" style="max-width:640px"></a>
+    <a href="results/an_2_model_vs_measured.png?v=20261019151912" target="_blank"><img class="fig" src="results/an_2_model_vs_measured.png?v=20261019151912" alt="model vs measured" loading="lazy" style="max-width:640px"></a>
     <p class="notes">Each dot is one ride on one stretch: measured average speed (turn timing from the logger, lower straight from
       logger + landing camera, tube mouth → lip from the landing video) against the fitted model on the same stretch. The model
       has three free numbers per ride (push, turn friction, lower friction), so a close match on four stretches is a real check.
@@ -206,15 +206,15 @@
 </main>
 <div class="tip" id="tip"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>window.V = "20261019134207";</script>
-<script type="module" src="chest_replay.js?v=20261019134207"></script>
+<script>window.V = "20261019151912";</script>
+<script type="module" src="chest_replay.js?v=20261019151912"></script>
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const fmt = (v, d = 1) => (v == null || Number.isNaN(v)) ? "—" : (+v).toFixed(d);
 const tip = $("tip");
-const V = "20261019134207";
+const V = "20261019151912";
 /* ------------------------------------------------------------------ chart */
 function niceTicks(lo, hi, n = 5) {
   const span = hi - lo || 1, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
@@ -349,16 +349,29 @@ function segBands() {
 const tile = (tl, tv, tu, tn) => `<div class="tile"><div class="tl">${tl}</div><div class="tv">${tv}<span class="tu">${tu}</span></div>${tn ? `<div class="tn">${tn}</div>` : ""}</div>`;
 
 /* picker: every run as a bar (speed through the turns), dot = how it ended */
+function copDescent() {
+  // the officer: only his last 3.95 m are filmed, so his descent time comes from the speed profiles that reproduce his
+  // measured 0.70 s there (top of the slope -> lip); the most likely profile, and the range of all that fit
+  const t = c => { let T = 0; for (let i = 1; i < c.s.length; i++) { const a = c.s[i - 1], b = c.s[i]; if (b < 0.72 || a > 12.75) continue;
+    const v = (c.v[i - 1] + c.v[i]) / 2 / KMH; if (v > 0.05) T += (Math.min(b, 12.75) - Math.max(a, 0.72)) / v; } return T; };
+  const ts = (TYP.cop || []).map(t); return ts.length ? { t: ts[1] ?? ts[0], lo: Math.min(...ts), hi: Math.max(...ts) } : null;
+}
+
 function bars() {
-  // ranked by overall descent time: top of the slope -> leaving the lip / coming to rest (fastest first)
-  const T = r => (ex(r).desc || {}).t, rs = R.filter(r => T(r) > 0).sort((a, b) => T(a) - T(b)), tmax = Math.max(...rs.map(T));
-  $("bars").innerHTML = rs.map(r => {
-    const d = ex(r).desc, w = Math.min(T(r), 20) / Math.min(tmax, 20) * 100, L = OUT[outc(r)], c = L ? L[1] : "#9aa6b0", odd = d.spread > 2;
-    const weak = odd || r.quality === "C" || d.src.startsWith("chest") || d.lower_bound, bar = `background:${c};opacity:${weak ? 0.45 : 1}`;
+  // ranked by overall descent time: top of the slope -> leaving the lip / coming to rest (fastest first), with the officer
+  const T = r => (ex(r).desc || {}).t, cop = copDescent();
+  const rows = R.filter(r => T(r) > 0).map(r => ({ r, t: T(r) })).concat(cop ? [{ cop, t: cop.t }] : []).sort((a, b) => a.t - b.t);
+  const tmax = Math.max(...rows.map(x => x.t));
+  $("bars").innerHTML = rows.map(({ r, cop: c, t }) => {
+    const w = Math.min(t, 20) / Math.min(tmax, 20) * 100;
+    if (c) return `<div class="frow" style="cursor:default" title="Estimated: only his last 3.95 m are filmed. Speed profiles that reproduce his measured 0.70 s give ${fmt(c.lo)}–${fmt(c.hi)} s from the top of the slope to the lip; most likely ${fmt(c.t)} s.">` +
+      `<span class="fl" style="color:${COPC};font-weight:600">the cop (estimated)</span><span class="fb"><i style="width:${w.toFixed(1)}%;background:${COPC};opacity:0.45"></i></span><b style="white-space:nowrap;color:${COPC}">~${fmt(t)} s</b></div>`;
+    const d = ex(r).desc, L = OUT[outc(r)], col = L ? L[1] : "#9aa6b0", odd = d.spread > 2;
+    const weak = odd || r.quality === "C" || d.src.startsWith("chest") || d.lower_bound, bar = `background:${col};opacity:${weak ? 0.45 : 1}`;
     return `<div class="frow${SEL && SEL.run_id === r.run_id ? " sel" : ""}" data-id="${r.run_id}" style="cursor:pointer" title="${d.src}${d.spread ? ` · estimates differ by ${d.spread.toFixed(1)} s` : ""}">` +
-      `<span class="fl">${nm(r)}</span><span class="fb"><i style="width:${w.toFixed(1)}%;${bar}"></i></span><b style="white-space:nowrap">${d.lower_bound ? "~" : ""}${fmt(T(r))} s${odd ? "?" : ""}${T(r) > 20 ? "→" : ""}</b></div>`;
+      `<span class="fl">${nm(r)}</span><span class="fb"><i style="width:${w.toFixed(1)}%;${bar}"></i></span><b style="white-space:nowrap">${d.lower_bound ? "~" : ""}${fmt(t)} s${odd ? "?" : ""}${t > 20 ? "→" : ""}</b></div>`;
   }).join("");
-  $("bars").querySelectorAll(".frow").forEach(e => e.addEventListener("click", () => { select(+e.dataset.id); $("runView").scrollIntoView({ behavior: "smooth" }); }));
+  $("bars").querySelectorAll(".frow[data-id]").forEach(e => e.addEventListener("click", () => { select(+e.dataset.id); $("runView").scrollIntoView({ behavior: "smooth" }); }));
   legend($("legB"), Object.values(OUT).map(([n, c]) => ({ name: n, color: c })).concat([{ name: "faded = less certain time (end of ride uncertain, or estimated)", color: "#8a8984" }]));
 }
 
