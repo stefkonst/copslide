@@ -64,10 +64,7 @@ const box = new THREE.Box3().setFromPoints(PTS), C = box.getCenter(new THREE.Vec
     for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2, b = new THREE.Mesh(new THREE.SphereGeometry(0.012, 6, 4), bolt);
       b.position.copy(ax).add(new THREE.Vector3(Math.cos(a) * (GEO.R + 0.035), Math.sin(a) * (GEO.R + 0.035), 0).applyQuaternion(q)); scene.add(b); }
   }
-  { // semicircular flange collar between the turns (photos)
-    const [ax, t] = axisAt(GEO.S_RT1 + 0.3), fl = new THREE.Mesh(new THREE.RingGeometry(GEO.R + 0.02, GEO.R + 0.40, 32, 1, 0, Math.PI), std(0xdfe4e8, { metalness: 0.45, roughness: 0.3, side: THREE.DoubleSide }));
-    fl.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), t); fl.position.copy(ax); fl.castShadow = true; scene.add(fl);
-  }
+
   for (const s of [GEO.S_B1 + 0.25, GEO.S_LIP - 0.35]) { const F = frameAt(s), b = V3(F.b);   // steel legs under the flat end
     for (const sg of [-1, 1]) { const o = V3(F.o).addScaledVector(b, sg * 0.28); put(new THREE.CylinderGeometry(0.025, 0.025, o.y, 8), std(0x9aa2a8, { metalness: 0.8 }), o.x, o.y / 2, o.z); } }
   // ---- maroon rubber hill: broad, smooth, the trough runs down it
@@ -145,7 +142,7 @@ const box = new THREE.Box3().setFromPoints(PTS), C = box.getCenter(new THREE.Vec
 }
 
 /* ---------------------------------------------------------------- body + physics */
-let RAP = null, sim = null, meshes = {}, rate = 1, acc = 0, last = 0, camT = new THREE.Vector3(), camMode = "stairs", hist = [], runs = [];
+let RAP = null, sim = null, meshes = {}, rate = 1, acc = 0, last = 0, camT = new THREE.Vector3(), camMode = "orbit", hist = [], runs = [];
 function buildMeshes() {
   Object.values(meshes).forEach(m => scene.remove(m)); meshes = {};
   const cl = CLOTHES[$("cl").value];
@@ -157,7 +154,13 @@ function buildMeshes() {
     m.castShadow = true; scene.add(m); meshes[k] = m;
   }
 }
-const orbit = { th: -1.15, ph: 1.12, r: Math.max(9, SZ.length() * 0.9) };
+// orbit starts where you would stand beside the granite stairs (like the landing cameras), aimed at the middle of the slide
+const orbit = (() => {
+  const A = frameAt(GEO.S_B0 + 0.6), th = new THREE.Vector3(A.t[0], 0, A.t[2]).normalize(), rt = new THREE.Vector3(th.z, 0, -th.x);
+  const eye = new THREE.Vector3(A.o[0] + rt.x * 5.6 + th.x * 3.4, 2.4, A.o[2] + rt.z * 5.6 + th.z * 3.4);
+  const d = eye.sub(new THREE.Vector3(C.x, C.y * 0.7, C.z)), r = d.length() * 1.12;
+  return { th: Math.atan2(d.x, d.z), ph: Math.acos(Math.max(-1, Math.min(1, d.y / d.length()))), r };
+})();
 const TOWER = new THREE.Vector3(...frameAt(0).o).add(new THREE.Vector3(0, 2.4, 0)).addScaledVector(new THREE.Vector3(...frameAt(0).t), 0.4);
 function sync() {
   for (const [k, rb] of Object.entries(sim.bodies)) { const t = rb.translation(), q = rb.rotation(); meshes[k].position.set(t.x, t.y, t.z); meshes[k].quaternion.set(q.x, q.y, q.z, q.w); }

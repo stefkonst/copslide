@@ -125,8 +125,8 @@
     <div class="card"><div id="view"></div>
       <div class="chips" style="margin-top:8px"><button class="chip" id="go">▶ run again</button>
         <button class="chip" data-rate="0.25">¼ speed</button><button class="chip" data-rate="0.5">½ speed</button><button class="chip active" data-rate="1">real time</button></div>
-      <div class="chips" style="margin-top:6px"><button class="chip active" data-cam="stairs">from the stairs</button><button class="chip" data-cam="follow">follow</button><button class="chip" data-cam="chase">chase</button>
-        <button class="chip" data-cam="pov">rider's view</button><button class="chip" data-cam="photo">from the playground</button><button class="chip" data-cam="tower">from the tower</button><button class="chip" data-cam="orbit">orbit (drag, scroll)</button></div></div>
+      <div class="chips" style="margin-top:6px"><button class="chip" data-cam="follow">follow</button><button class="chip" data-cam="chase">chase</button>
+        <button class="chip" data-cam="pov">rider's view</button><button class="chip" data-cam="photo">from the playground</button><button class="chip" data-cam="tower">from the tower</button><button class="chip active" data-cam="orbit">orbit (drag, scroll)</button></div></div>
     <div class="card">
       <h3>Choose</h3>
       <div class="ctl"><label>Push-off speed (whole body on the slope) <b id="pushVal"></b></label><input id="push" type="range" min="0" max="16" step="0.5" value="6"></div>
@@ -145,20 +145,20 @@
     <p class="notes">The video that started it. What our measurements say about it is on <a href="results.html">Results</a>.</p></div>
   <h2>Effect of each parameter</h2>
   <p class="notes">One choice changed at a time, the rest fixed (6 km/h push, on the back, normal clothes); same physics as above.</p>
-  <div class="card fig"><a href="results/th_1_push.png?v=20261019132637" target="_blank"><img src="results/th_1_push.png?v=20261019132637" alt="Push-off speed" loading="lazy"></a>
+  <div class="card fig"><a href="results/th_1_push.png?v=20261019133016" target="_blank"><img src="results/th_1_push.png?v=20261019133016" alt="Push-off speed" loading="lazy"></a>
     <div><h3>Push-off speed</h3><p><b>Expected:</b> A harder push adds little: from no push to 16 km/h, the speed out of the tube goes 8.4 → 10.0 km/h in normal clothes and 18.2 → 18.7 in the cop uniform. In normal clothes the rider still stops at 12.0 m; the cop uniform always shoots off. The turns take the push away again.</p></div></div>
-  <div class="card fig"><a href="results/th_2_friction.png?v=20261019132637" target="_blank"><img src="results/th_2_friction.png?v=20261019132637" alt="Friction coefficient (what the clothes set)" loading="lazy"></a>
+  <div class="card fig"><a href="results/th_2_friction.png?v=20261019133016" target="_blank"><img src="results/th_2_friction.png?v=20261019133016" alt="Friction coefficient (what the clothes set)" loading="lazy"></a>
     <div><h3>Friction coefficient (what the clothes set)</h3><p><b>Expected:</b> Speed falls steadily as friction rises towards the stall value tan 30° = 0.58; from about 0.35, the rider no longer reaches the end lip. Normal clothes (0.40) stop on the exit flat; the cop uniform (0.15) shoots off.</p></div></div>
-  <div class="card fig"><a href="results/th_3_posture.png?v=20261019132637" target="_blank"><img src="results/th_3_posture.png?v=20261019132637" alt="Starting position" loading="lazy"></a>
+  <div class="card fig"><a href="results/th_3_posture.png?v=20261019133016" target="_blank"><img src="results/th_3_posture.png?v=20261019133016" alt="Starting position" loading="lazy"></a>
     <div><h3>Starting position</h3><p><b>Expected:</b> Speed out of the tube: 7–10 km/h in normal clothes and 18 in the cop uniform, depending on the position. The clothes matter far more than the position, which mostly changes how the body twists.</p></div></div>
-  <div class="card fig"><a href="results/th_4_profiles.png?v=20261019132637" target="_blank"><img src="results/th_4_profiles.png?v=20261019132637" alt="Speed along the slide" loading="lazy"></a>
+  <div class="card fig"><a href="results/th_4_profiles.png?v=20261019133016" target="_blank"><img src="results/th_4_profiles.png?v=20261019133016" alt="Speed along the slide" loading="lazy"></a>
     <div><h3>Speed along the slide</h3><p><b>Expected:</b> Same push and position, only the clothes differ: the curves split in the turns and never come back together.</p></div></div>
   <p class="notes">Physics: Rapier rigid-body engine; slide geometry from measured segment lengths; one friction coefficient for the
     whole slide; body held loosely (same muscle tone for everyone). Calibrated against real rides on the
     <a href="launch/">Landing simulation</a> page and in <a href="results.html">Results</a>.</p>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>window.V = "20261019132637";</script>
-<script type="module" src="whole_view.js?v=20261019132637"></script>
+<script>window.V = "20261019133016";</script>
+<script type="module" src="whole_view.js?v=20261019133016"></script>
 </body>
 </html>
